@@ -88,7 +88,7 @@ func (s *Server) DeleteGroup(ctx context.Context, input *dto.DeleteGroupInput) (
 }
 
 func (s *Server) ListGroups(ctx context.Context, input *dto.ListGroupsInput) (*response.Output[response.PaginatedData[dto.GroupDTO]], error) {
-	list, total, err := s.groupSvc.FindByFilters(ctx, input.Search, input.CreatedAtFrom, input.CreatedAtTo, input.IDs, input.Page, input.Limit)
+	list, total, err := s.groupSvc.FindByFilters(ctx, input.Search, input.CreatedAtFrom, input.CreatedAtTo, input.IDs, input.Page, input.Limit, input.SortBy, input.SortOrder)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}

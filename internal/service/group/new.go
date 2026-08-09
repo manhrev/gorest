@@ -19,6 +19,7 @@ import (
 	"github.com/manhrev/gorest/internal/dto"
 	grouprepo "github.com/manhrev/gorest/internal/repository/group"
 	"github.com/manhrev/gorest/pkg/db/model"
+	"github.com/manhrev/gorest/pkg/dto/request"
 	"github.com/manhrev/gorest/pkg/error/repoerr"
 	"github.com/manhrev/gorest/pkg/error/serviceerr"
 )
@@ -95,8 +96,9 @@ func (s *Service) UpdateByID(ctx context.Context, id string, name, description *
 // ids) mean "no filter" for that dimension.
 func (s *Service) FindByFilters(
 	ctx context.Context, search string, createdAtFrom, createdAtTo time.Time, ids []string, page, limit int,
+	sortBy string, sortOrder request.SortOrder,
 ) ([]dto.GroupDTO, int64, error) {
-	rows, total, err := s.repo.FindByFilters(ctx, search, createdAtFrom, createdAtTo, ids, page, limit)
+	rows, total, err := s.repo.FindByFilters(ctx, search, createdAtFrom, createdAtTo, ids, page, limit, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, serviceerr.NewInternal(err)
 	}

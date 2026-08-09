@@ -63,11 +63,13 @@ type DeleteUserInput struct {
 // CreatedAtFrom/CreatedAtTo use the zero time.Time value to mean "not set"
 // (huma query params can't be pointers).
 type ListUsersInput struct {
-	Search        string    `query:"search" doc:"Filter by substring match on username or email"`
-	CreatedAtFrom time.Time `query:"createdAtFrom" doc:"Only users created on/after this time (RFC 3339), omit to leave unbounded"`
-	CreatedAtTo   time.Time `query:"createdAtTo" doc:"Only users created on/before this time (RFC 3339), omit to leave unbounded"`
-	IDs           []string  `query:"ids,explode" format:"uuid" nullable:"false" doc:"Filter to only these user IDs (repeat as ?ids=a&ids=b)"`
-	IsLoadGroups  bool      `query:"isLoadGroups" doc:"Preload and include each user's groups in the response"`
+	Search        string            `query:"search" doc:"Filter by substring match on username or email"`
+	CreatedAtFrom time.Time         `query:"createdAtFrom" doc:"Only users created on/after this time (RFC 3339), omit to leave unbounded"`
+	CreatedAtTo   time.Time         `query:"createdAtTo" doc:"Only users created on/before this time (RFC 3339), omit to leave unbounded"`
+	IDs           []string          `query:"ids,explode" format:"uuid" nullable:"false" doc:"Filter to only these user IDs (repeat as ?ids=a&ids=b)"`
+	IsLoadGroups  bool              `query:"isLoadGroups" doc:"Preload and include each user's groups in the response"`
+	SortBy        string            `query:"sortBy" enum:"username,email,createdAt" default:"createdAt" doc:"Field to sort by"`
+	SortOrder     request.SortOrder `query:"sortOrder" enum:"asc,desc" default:"asc" doc:"Sort direction"`
 	request.Pagination
 }
 

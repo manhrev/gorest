@@ -105,7 +105,7 @@ func (s *Server) DeleteUser(ctx context.Context, input *dto.DeleteUserInput) (*r
 }
 
 func (s *Server) ListUsers(ctx context.Context, input *dto.ListUsersInput) (*response.Output[response.PaginatedData[dto.UserDTO]], error) {
-	list, total, err := s.userSvc.FindByFilters(ctx, input.Search, input.CreatedAtFrom, input.CreatedAtTo, input.IDs, input.Page, input.Limit, input.IsLoadGroups)
+	list, total, err := s.userSvc.FindByFilters(ctx, input.Search, input.CreatedAtFrom, input.CreatedAtTo, input.IDs, input.Page, input.Limit, input.IsLoadGroups, input.SortBy, input.SortOrder)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}

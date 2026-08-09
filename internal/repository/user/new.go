@@ -12,7 +12,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,8 +25,19 @@ import (
 
 	"github.com/manhrev/gorest/pkg/db/dberror"
 	"github.com/manhrev/gorest/pkg/db/model"
+	"github.com/manhrev/gorest/pkg/dto/request"
 	"github.com/manhrev/gorest/pkg/error/repoerr"
 )
+
+// userSortColumns whitelists the columns FindByFilters can sort by, keyed by
+// the same strings validated on the wire via ListUsersInput's SortBy enum
+// tag. Looking them up here too (not just trusting the enum validation) is
+// defense in depth — a raw column name never flows into SQL from a request.
+var userSortColumns = map[string]any{
+	"username":  model.Users.Columns.Username,
+	"email":     model.Users.Columns.Email,
+	"createdAt": model.Users.Columns.CreatedAt,
+}
 
 // Unique-constraint-violation sentinels for Create, mapped from Postgres'
 // unique_violation by constraint name (see migrations/*_init.up.sql for
@@ -128,9 +138,13 @@ func (r *Repository) UpdateById(ctx context.Context, id string, setter *model.Us
 // page/limit are 1-indexed/page-size; FindByFilters returns the page's rows
 // plus the total row count across all pages (ignoring limit/offset) so the
 // caller can compute total pages. loadGroups preloads each row's groups
-// (see FirstById's loadGroups doc).
+// (see FirstById's loadGroups doc). sortBy/sortOrder control the ORDER BY,
+// applied in SQL before limit/offset — an unrecognized sortBy (shouldn't
+// happen, ListUsersInput's enum tag already rejects it) falls back to
+// created_at rather than erroring.
 func (r *Repository) FindByFilters(
 	ctx context.Context, search string, createdAtFrom, createdAtTo time.Time, ids []string, page, limit int, loadGroups bool,
+	sortBy string, sortOrder request.SortOrder,
 ) (model.UserSlice, int64, error) {
 	var mods []bob.Mod[*dialect.SelectQuery]
 
@@ -160,6 +174,17 @@ func (r *Repository) FindByFilters(
 		return nil, 0, err
 	}
 
+	col, ok := userSortColumns[sortBy]
+	if !ok {
+		col = model.Users.Columns.CreatedAt
+	}
+	order := sm.OrderBy(col)
+	if sortOrder == request.SortOrderDesc {
+		mods = append(mods, order.Desc())
+	} else {
+		mods = append(mods, order.Asc())
+	}
+
 	mods = append(mods, sm.Limit(limit), sm.Offset((page-1)*limit))
 
 	// Batches the user_groups + groups fetch into one extra query each
@@ -180,8 +205,6 @@ func (r *Repository) FindByFilters(
 		}
 		return nil, 0, err
 	}
-
-	sort.Slice(rows, func(i, j int) bool { return rows[i].CreatedAt.Before(rows[j].CreatedAt) })
 
 	return rows, total, nil
 }

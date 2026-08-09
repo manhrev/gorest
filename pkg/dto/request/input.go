@@ -10,3 +10,13 @@ type Pagination struct {
 	Page  int `query:"page" default:"1" minimum:"1" doc:"Page number (1-indexed)"`
 	Limit int `query:"limit" default:"20" minimum:"1" maximum:"100" doc:"Page size"`
 }
+
+// SortOrder is the direction for a "sortOrder" query param. Sortable field
+// names are resource-specific, so each operation's Input declares its own
+// SortBy string with its own enum tag rather than embedding a shared type.
+type SortOrder string
+
+const (
+	SortOrderAsc  SortOrder = "asc"
+	SortOrderDesc SortOrder = "desc"
+)

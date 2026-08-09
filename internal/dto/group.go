@@ -46,9 +46,11 @@ type DeleteGroupInput struct {
 
 // ListGroupsInput represents the list-groups operation request.
 type ListGroupsInput struct {
-	Search        string    `query:"search" doc:"Filter by substring match on name"`
-	CreatedAtFrom time.Time `query:"createdAtFrom" doc:"Only groups created on/after this time (RFC 3339), omit to leave unbounded"`
-	CreatedAtTo   time.Time `query:"createdAtTo" doc:"Only groups created on/before this time (RFC 3339), omit to leave unbounded"`
-	IDs           []string  `query:"ids,explode" format:"uuid" nullable:"false" doc:"Filter to only these group IDs (repeat as ?ids=a&ids=b)"`
+	Search        string            `query:"search" doc:"Filter by substring match on name"`
+	CreatedAtFrom time.Time         `query:"createdAtFrom" doc:"Only groups created on/after this time (RFC 3339), omit to leave unbounded"`
+	CreatedAtTo   time.Time         `query:"createdAtTo" doc:"Only groups created on/before this time (RFC 3339), omit to leave unbounded"`
+	IDs           []string          `query:"ids,explode" format:"uuid" nullable:"false" doc:"Filter to only these group IDs (repeat as ?ids=a&ids=b)"`
+	SortBy        string            `query:"sortBy" enum:"name,createdAt" default:"createdAt" doc:"Field to sort by"`
+	SortOrder     request.SortOrder `query:"sortOrder" enum:"asc,desc" default:"asc" doc:"Sort direction"`
 	request.Pagination
 }

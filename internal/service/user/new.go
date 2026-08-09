@@ -20,6 +20,7 @@ import (
 	grouprepo "github.com/manhrev/gorest/internal/repository/group"
 	userrepo "github.com/manhrev/gorest/internal/repository/user"
 	"github.com/manhrev/gorest/pkg/db/model"
+	"github.com/manhrev/gorest/pkg/dto/request"
 	"github.com/manhrev/gorest/pkg/error/repoerr"
 	"github.com/manhrev/gorest/pkg/error/serviceerr"
 	"github.com/manhrev/gorest/pkg/txrunner"
@@ -119,8 +120,9 @@ func (s *Service) UpdateByID(ctx context.Context, id string, firstName, lastName
 // rejected outright rather than silently excluded.
 func (s *Service) FindByFilters(
 	ctx context.Context, search string, createdAtFrom, createdAtTo time.Time, ids []string, page, limit int, loadGroups bool,
+	sortBy string, sortOrder request.SortOrder,
 ) ([]dto.UserDTO, int64, error) {
-	rows, total, err := s.repo.FindByFilters(ctx, search, createdAtFrom, createdAtTo, ids, page, limit, loadGroups)
+	rows, total, err := s.repo.FindByFilters(ctx, search, createdAtFrom, createdAtTo, ids, page, limit, loadGroups, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, serviceerr.NewInternal(err)
 	}
