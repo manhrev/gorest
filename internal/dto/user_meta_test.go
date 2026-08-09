@@ -3,10 +3,12 @@ package dto
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/manhrev/gorest/pkg/dto/wrapper"
 )
 
 func TestUserMetaBox_RoundTrip(t *testing.T) {
-	in := UserMetaBox{Meta: AdminMeta{Level: "super"}}
+	in := UserMetaBox{Value: AdminMeta{Level: "super"}}
 
 	raw, err := json.Marshal(in)
 	if err != nil {
@@ -20,8 +22,8 @@ func TestUserMetaBox_RoundTrip(t *testing.T) {
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if out.Meta != in.Meta {
-		t.Fatalf("got %#v, want %#v", out.Meta, in.Meta)
+	if out.Value != in.Value {
+		t.Fatalf("got %#v, want %#v", out.Value, in.Value)
 	}
 }
 
@@ -32,16 +34,16 @@ func TestUserMetaBox_UnknownType(t *testing.T) {
 	if err := json.Unmarshal([]byte(src), &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	unk, ok := out.Meta.(UnknownMeta)
+	unk, ok := out.Value.(wrapper.UnknownMeta)
 	if !ok {
-		t.Fatalf("got %#v, want UnknownMeta", out.Meta)
+		t.Fatalf("got %#v, want wrapper.UnknownMeta", out.Value)
 	}
 	if unk.Type != "bogus" {
 		t.Fatalf("got type %q, want %q", unk.Type, "bogus")
 	}
 
 	// Round-trips back to the same fields (key order isn't preserved —
-	// UserMetaBox.MarshalJSON always goes through a map to inject "type").
+	// Box.MarshalJSON always goes through a map to inject "type").
 	raw, err := json.Marshal(out)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
@@ -63,7 +65,7 @@ func TestUserMetaBox_Null(t *testing.T) {
 	if err := json.Unmarshal([]byte("null"), &out); err != nil {
 		t.Fatalf("unmarshal null: %v", err)
 	}
-	if out.Meta != nil {
-		t.Fatalf("expected nil Meta, got %#v", out.Meta)
+	if out.Value != nil {
+		t.Fatalf("expected nil Value, got %#v", out.Value)
 	}
 }
