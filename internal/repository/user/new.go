@@ -2,7 +2,7 @@
 // the generated table bindings) against a pgxpool-backed connection.
 //
 // This package speaks the DB's native model.User/model.UserSetter types
-// only — no dto.UserDTO here. Translating between the DB shape and the API
+// only — no dto.User here. Translating between the DB shape and the API
 // shape, plus any business rules, belongs to the service layer above this,
 // not the repository.
 package user

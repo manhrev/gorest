@@ -9,8 +9,8 @@ import (
 	"github.com/manhrev/gorest/pkg/db/model"
 )
 
-func GroupToDto(m *model.Group) dto.GroupDTO {
-	d := dto.GroupDTO{
+func GroupToDto(m *model.Group) dto.Group {
+	d := dto.Group{
 		ID:          m.ID,
 		Name:        m.Name,
 		Description: m.Description.V,
@@ -37,8 +37,8 @@ func GroupInfoToSetterField(info *dto.GroupInfoBox) *sql.Null[types.JSON[dto.Gro
 	return &sql.Null[types.JSON[dto.GroupInfoBox]]{Valid: true, V: types.NewJSON(*info)}
 }
 
-func GroupsToDtos(rows model.GroupSlice) []dto.GroupDTO {
-	out := make([]dto.GroupDTO, len(rows))
+func GroupsToDtos(rows model.GroupSlice) []dto.Group {
+	out := make([]dto.Group, len(rows))
 	for i, m := range rows {
 		out[i] = GroupToDto(m)
 	}

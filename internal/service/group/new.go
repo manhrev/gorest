@@ -1,6 +1,6 @@
 // Package group is the group service: business rules + translation between
 // the DB shape (model.Group, from the repository) and the API shape
-// (dto.GroupDTO, to the handler). Takes inline scalar params rather than
+// (dto.Group, to the handler). Takes inline scalar params rather than
 // dto structs, so it stays usable from any transport (HTTP via huma, or a
 // future gRPC handler), not just the current huma handlers.
 package group
@@ -32,7 +32,7 @@ func New(repo *grouprepo.Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, name, description string, groupInfo *dto.GroupInfoBox) (dto.GroupDTO, error) {
+func (s *Service) Create(ctx context.Context, name, description string, groupInfo *dto.GroupInfoBox) (dto.Group, error) {
 	id := uuid.New()
 	now := time.Now().UTC()
 
@@ -47,24 +47,24 @@ func (s *Service) Create(ctx context.Context, name, description string, groupInf
 	if err != nil {
 		switch {
 		case errors.Is(err, grouprepo.ErrNameExisted):
-			return dto.GroupDTO{}, serviceerr.NewConflict(err).
+			return dto.Group{}, serviceerr.NewConflict(err).
 				SetMessage("Group name already exists.").
 				AddDetail("name", code.GroupNameExisted, "Group name already exists.")
 		default:
-			return dto.GroupDTO{}, serviceerr.NewInternal(err)
+			return dto.Group{}, serviceerr.NewInternal(err)
 		}
 	}
 
 	return converter.GroupToDto(m), nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id string) (dto.GroupDTO, error) {
+func (s *Service) GetByID(ctx context.Context, id string) (dto.Group, error) {
 	m, err := s.repo.FirstById(ctx, id)
 	if err != nil {
 		if errors.Is(err, repoerr.ErrNotFound) {
-			return dto.GroupDTO{}, serviceerr.NewNotFound(err)
+			return dto.Group{}, serviceerr.NewNotFound(err)
 		}
-		return dto.GroupDTO{}, serviceerr.NewInternal(err)
+		return dto.Group{}, serviceerr.NewInternal(err)
 	}
 
 	return converter.GroupToDto(m), nil
@@ -73,7 +73,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (dto.GroupDTO, error) 
 // UpdateByID applies a partial update: nil fields are left unchanged (same
 // contract as the repository's model.GroupSetter). groupInfo, when
 // non-nil, replaces any existing group info wholesale.
-func (s *Service) UpdateByID(ctx context.Context, id string, name, description *string, groupInfo *dto.GroupInfoBox) (dto.GroupDTO, error) {
+func (s *Service) UpdateByID(ctx context.Context, id string, name, description *string, groupInfo *dto.GroupInfoBox) (dto.Group, error) {
 	setter := &model.GroupSetter{Name: name, GroupInfo: converter.GroupInfoToSetterField(groupInfo)}
 	if description != nil {
 		setter.Description = &sql.Null[string]{V: *description, Valid: *description != ""}
@@ -82,9 +82,9 @@ func (s *Service) UpdateByID(ctx context.Context, id string, name, description *
 	m, err := s.repo.UpdateById(ctx, id, setter)
 	if err != nil {
 		if errors.Is(err, repoerr.ErrNotFound) {
-			return dto.GroupDTO{}, serviceerr.NewNotFound(err)
+			return dto.Group{}, serviceerr.NewNotFound(err)
 		}
-		return dto.GroupDTO{}, serviceerr.NewInternal(err)
+		return dto.Group{}, serviceerr.NewInternal(err)
 	}
 
 	return converter.GroupToDto(m), nil
@@ -99,7 +99,7 @@ func (s *Service) UpdateByID(ctx context.Context, id string, name, description *
 func (s *Service) FindByFilters(
 	ctx context.Context, search string, createdAtFrom, createdAtTo time.Time, ids []string, page, limit int,
 	sortBy string, sortOrder request.SortOrder,
-) ([]dto.GroupDTO, int64, error) {
+) ([]dto.Group, int64, error) {
 	rows, total, err := s.repo.FindByFilters(ctx, search, createdAtFrom, createdAtTo, ids, page, limit, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, serviceerr.NewInternal(err)

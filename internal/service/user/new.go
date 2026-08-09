@@ -1,6 +1,6 @@
 // Package user is the user service: business rules + translation between
 // the DB shape (model.User, from the repository) and the API shape
-// (dto.UserDTO, to the handler). Takes inline scalar params rather than
+// (dto.User, to the handler). Takes inline scalar params rather than
 // dto structs, so it stays usable from any transport (HTTP via huma, or a
 // future gRPC handler), not just the current huma handlers.
 package user
@@ -39,10 +39,10 @@ func New(repo *userrepo.Repository, groupRepo *grouprepo.Repository, txRunner *t
 	return &Service{repo: repo, groupRepo: groupRepo, txRunner: txRunner}
 }
 
-func (s *Service) Create(ctx context.Context, username, email, firstName, lastName string, meta *dto.UserMetaBox) (dto.UserDTO, error) {
+func (s *Service) Create(ctx context.Context, username, email, firstName, lastName string, meta *dto.UserMetaBox) (dto.User, error) {
 	m, err := s.repo.Create(ctx, newUserSetter(username, email, firstName, lastName, meta))
 	if err != nil {
-		return dto.UserDTO{}, mapCreateErr(err)
+		return dto.User{}, mapCreateErr(err)
 	}
 
 	return converter.UserToDto(m), nil
@@ -81,13 +81,13 @@ func mapCreateErr(err error) error {
 	}
 }
 
-func (s *Service) GetByID(ctx context.Context, id string, loadGroups bool) (dto.UserDTO, error) {
+func (s *Service) GetByID(ctx context.Context, id string, loadGroups bool) (dto.User, error) {
 	m, err := s.repo.FirstById(ctx, id, loadGroups)
 	if err != nil {
 		if errors.Is(err, repoerr.ErrNotFound) {
-			return dto.UserDTO{}, serviceerr.NewNotFound(err)
+			return dto.User{}, serviceerr.NewNotFound(err)
 		}
-		return dto.UserDTO{}, serviceerr.NewInternal(err)
+		return dto.User{}, serviceerr.NewInternal(err)
 	}
 
 	return converter.UserToDto(m), nil
@@ -96,7 +96,7 @@ func (s *Service) GetByID(ctx context.Context, id string, loadGroups bool) (dto.
 // UpdateByID applies a partial update: nil fields are left unchanged (same
 // contract as the repository's model.UserSetter). meta, when non-nil,
 // replaces any existing meta wholesale (no partial-merge of its contents).
-func (s *Service) UpdateByID(ctx context.Context, id string, firstName, lastName, email *string, meta *dto.UserMetaBox) (dto.UserDTO, error) {
+func (s *Service) UpdateByID(ctx context.Context, id string, firstName, lastName, email *string, meta *dto.UserMetaBox) (dto.User, error) {
 	m, err := s.repo.UpdateById(ctx, id, &model.UserSetter{
 		FirstName: firstName,
 		LastName:  lastName,
@@ -105,9 +105,9 @@ func (s *Service) UpdateByID(ctx context.Context, id string, firstName, lastName
 	})
 	if err != nil {
 		if errors.Is(err, repoerr.ErrNotFound) {
-			return dto.UserDTO{}, serviceerr.NewNotFound(err)
+			return dto.User{}, serviceerr.NewNotFound(err)
 		}
-		return dto.UserDTO{}, serviceerr.NewInternal(err)
+		return dto.User{}, serviceerr.NewInternal(err)
 	}
 
 	return converter.UserToDto(m), nil
@@ -124,7 +124,7 @@ func (s *Service) UpdateByID(ctx context.Context, id string, firstName, lastName
 func (s *Service) FindByFilters(
 	ctx context.Context, search string, createdAtFrom, createdAtTo time.Time, ids []string, page, limit int, loadGroups bool,
 	sortBy string, sortOrder request.SortOrder,
-) ([]dto.UserDTO, int64, error) {
+) ([]dto.User, int64, error) {
 	rows, total, err := s.repo.FindByFilters(ctx, search, createdAtFrom, createdAtTo, ids, page, limit, loadGroups, sortBy, sortOrder)
 	if err != nil {
 		return nil, 0, serviceerr.NewInternal(err)
@@ -148,12 +148,12 @@ func (s *Service) DeleteByID(ctx context.Context, id string) error {
 // its own GroupIds, all in one transaction: any failure — a bad group id,
 // a duplicate username/email — rolls back every user in the request, not
 // just the one that failed.
-func (s *Service) CreateUsersAndAddToGroups(ctx context.Context, users []dto.CreateUserWithGroups) ([]dto.UserDTO, error) {
+func (s *Service) CreateUsersAndAddToGroups(ctx context.Context, users []dto.CreateUserWithGroups) ([]dto.User, error) {
 	if len(users) == 0 {
 		return nil, serviceerr.NewInvalidArgument(fmt.Errorf("users must be non-empty"))
 	}
 
-	out := make([]dto.UserDTO, 0, len(users))
+	out := make([]dto.User, 0, len(users))
 	err := s.txRunner.Run(ctx, func(ctx context.Context, exec bob.Executor) error {
 		userRepoTx := s.repo.WithExecutor(exec)
 		groupRepoTx := s.groupRepo.WithExecutor(exec)

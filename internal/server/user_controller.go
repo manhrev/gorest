@@ -73,7 +73,7 @@ func (s *Server) registerUserRoutes(api huma.API, basePath string) {
 	}, s.CreateUsersWithGroups)
 }
 
-func (s *Server) CreateUser(ctx context.Context, input *dto.CreateUserInput) (*response.Output[dto.UserDTO], error) {
+func (s *Server) CreateUser(ctx context.Context, input *dto.CreateUserInput) (*response.Output[dto.User], error) {
 	u, err := s.userSvc.Create(ctx, input.Body.Username, input.Body.Email, input.Body.FirstName, input.Body.LastName, input.Body.Meta)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
@@ -81,7 +81,7 @@ func (s *Server) CreateUser(ctx context.Context, input *dto.CreateUserInput) (*r
 	return response.NewOutput(ctx, u), nil
 }
 
-func (s *Server) GetUser(ctx context.Context, input *dto.GetUserInput) (*response.Output[dto.UserDTO], error) {
+func (s *Server) GetUser(ctx context.Context, input *dto.GetUserInput) (*response.Output[dto.User], error) {
 	u, err := s.userSvc.GetByID(ctx, input.ID, input.IsLoadGroups)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
@@ -89,7 +89,7 @@ func (s *Server) GetUser(ctx context.Context, input *dto.GetUserInput) (*respons
 	return response.NewOutput(ctx, u), nil
 }
 
-func (s *Server) UpdateUser(ctx context.Context, input *dto.UpdateUserInput) (*response.Output[dto.UserDTO], error) {
+func (s *Server) UpdateUser(ctx context.Context, input *dto.UpdateUserInput) (*response.Output[dto.User], error) {
 	u, err := s.userSvc.UpdateByID(ctx, input.ID, input.Body.FirstName, input.Body.LastName, input.Body.Email, input.Body.Meta)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
@@ -104,12 +104,12 @@ func (s *Server) DeleteUser(ctx context.Context, input *dto.DeleteUserInput) (*r
 	return response.NewOutput(ctx, response.EmptyData{}), nil
 }
 
-func (s *Server) ListUsers(ctx context.Context, input *dto.ListUsersInput) (*response.Output[response.PaginatedData[dto.UserDTO]], error) {
+func (s *Server) ListUsers(ctx context.Context, input *dto.ListUsersInput) (*response.Output[response.PaginatedData[dto.User]], error) {
 	list, total, err := s.userSvc.FindByFilters(ctx, input.Search, input.CreatedAtFrom, input.CreatedAtTo, input.IDs, input.Page, input.Limit, input.IsLoadGroups, input.SortBy, input.SortOrder)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}
-	return response.NewOutput(ctx, response.PaginatedData[dto.UserDTO]{
+	return response.NewOutput(ctx, response.PaginatedData[dto.User]{
 		Items:      list,
 		Total:      int(total),
 		Page:       input.Page,
@@ -125,7 +125,7 @@ func (s *Server) AddUsersToGroups(ctx context.Context, input *dto.AddUsersToGrou
 	return response.NewOutput(ctx, response.EmptyData{}), nil
 }
 
-func (s *Server) CreateUsersWithGroups(ctx context.Context, input *dto.CreateUsersWithGroupsInput) (*response.Output[[]dto.UserDTO], error) {
+func (s *Server) CreateUsersWithGroups(ctx context.Context, input *dto.CreateUsersWithGroupsInput) (*response.Output[[]dto.User], error) {
 	users, err := s.userSvc.CreateUsersAndAddToGroups(ctx, input.Body.Users)
 	if err != nil {
 		return nil, response.NewError(ctx, err)

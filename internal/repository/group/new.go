@@ -2,7 +2,7 @@
 // for the generated table bindings) against a pgxpool-backed connection.
 //
 // This package speaks the DB's native model.Group/model.GroupSetter types
-// only — no dto.GroupDTO here. Translating between the DB shape and the API
+// only — no dto.Group here. Translating between the DB shape and the API
 // shape, plus any business rules, belongs to the service layer above this,
 // not the repository.
 package group

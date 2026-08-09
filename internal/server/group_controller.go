@@ -56,7 +56,7 @@ func (s *Server) registerGroupRoutes(api huma.API, basePath string) {
 	}, s.ListGroups)
 }
 
-func (s *Server) CreateGroup(ctx context.Context, input *dto.CreateGroupInput) (*response.Output[dto.GroupDTO], error) {
+func (s *Server) CreateGroup(ctx context.Context, input *dto.CreateGroupInput) (*response.Output[dto.Group], error) {
 	g, err := s.groupSvc.Create(ctx, input.Body.Name, input.Body.Description, input.Body.GroupInfo)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
@@ -64,7 +64,7 @@ func (s *Server) CreateGroup(ctx context.Context, input *dto.CreateGroupInput) (
 	return response.NewOutput(ctx, g), nil
 }
 
-func (s *Server) GetGroup(ctx context.Context, input *dto.GetGroupInput) (*response.Output[dto.GroupDTO], error) {
+func (s *Server) GetGroup(ctx context.Context, input *dto.GetGroupInput) (*response.Output[dto.Group], error) {
 	g, err := s.groupSvc.GetByID(ctx, input.ID)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
@@ -72,7 +72,7 @@ func (s *Server) GetGroup(ctx context.Context, input *dto.GetGroupInput) (*respo
 	return response.NewOutput(ctx, g), nil
 }
 
-func (s *Server) UpdateGroup(ctx context.Context, input *dto.UpdateGroupInput) (*response.Output[dto.GroupDTO], error) {
+func (s *Server) UpdateGroup(ctx context.Context, input *dto.UpdateGroupInput) (*response.Output[dto.Group], error) {
 	g, err := s.groupSvc.UpdateByID(ctx, input.ID, input.Body.Name, input.Body.Description, input.Body.GroupInfo)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
@@ -87,12 +87,12 @@ func (s *Server) DeleteGroup(ctx context.Context, input *dto.DeleteGroupInput) (
 	return response.NewOutput(ctx, response.EmptyData{}), nil
 }
 
-func (s *Server) ListGroups(ctx context.Context, input *dto.ListGroupsInput) (*response.Output[response.PaginatedData[dto.GroupDTO]], error) {
+func (s *Server) ListGroups(ctx context.Context, input *dto.ListGroupsInput) (*response.Output[response.PaginatedData[dto.Group]], error) {
 	list, total, err := s.groupSvc.FindByFilters(ctx, input.Search, input.CreatedAtFrom, input.CreatedAtTo, input.IDs, input.Page, input.Limit, input.SortBy, input.SortOrder)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}
-	return response.NewOutput(ctx, response.PaginatedData[dto.GroupDTO]{
+	return response.NewOutput(ctx, response.PaginatedData[dto.Group]{
 		Items:      list,
 		Total:      int(total),
 		Page:       input.Page,

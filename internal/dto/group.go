@@ -6,8 +6,8 @@ import (
 	"github.com/manhrev/gorest/pkg/dto/request"
 )
 
-// GroupDTO is the canonical group representation returned by the API.
-type GroupDTO struct {
+// Group is the canonical group representation returned by the API.
+type Group struct {
 	ID          string        `json:"id" format:"uuid" doc:"Group ID (UUID)"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`

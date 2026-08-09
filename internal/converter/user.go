@@ -11,8 +11,8 @@ import (
 	"github.com/manhrev/gorest/pkg/db/model"
 )
 
-func UserToDto(m *model.User) dto.UserDTO {
-	d := dto.UserDTO{
+func UserToDto(m *model.User) dto.User {
+	d := dto.User{
 		ID:        m.ID,
 		Username:  m.Username,
 		Email:     m.Email,
@@ -31,7 +31,7 @@ func UserToDto(m *model.User) dto.UserDTO {
 	// Only set when the caller preloaded it (m.R.UserGroups + each
 	// UserGroup's .R.Group) — see repo.FirstById's loadGroups param.
 	if m.R.Loaded.UserGroups {
-		d.Groups = make([]dto.GroupDTO, 0, len(m.R.UserGroups))
+		d.Groups = make([]dto.Group, 0, len(m.R.UserGroups))
 		for _, ug := range m.R.UserGroups {
 			if ug.R.Group != nil {
 				d.Groups = append(d.Groups, GroupToDto(ug.R.Group))
@@ -52,8 +52,8 @@ func UserMetaToSetterField(meta *dto.UserMetaBox) *sql.Null[types.JSON[dto.UserM
 	return &sql.Null[types.JSON[dto.UserMetaBox]]{Valid: true, V: types.NewJSON(*meta)}
 }
 
-func UsersToDtos(rows model.UserSlice) []dto.UserDTO {
-	out := make([]dto.UserDTO, len(rows))
+func UsersToDtos(rows model.UserSlice) []dto.User {
+	out := make([]dto.User, len(rows))
 	for i, m := range rows {
 		out[i] = UserToDto(m)
 	}

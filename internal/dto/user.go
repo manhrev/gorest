@@ -1,6 +1,6 @@
 // Package dto holds request/response types for the API's operations.
 // Response bodies use pkg/dto.Output[T] directly (a common generic type),
-// so this package only needs to define the data shapes (UserDTO,
+// so this package only needs to define the data shapes (User,
 // ListUsersData) and the request Input types, no per-operation Output
 // wrapper structs.
 package dto
@@ -11,11 +11,11 @@ import (
 	"github.com/manhrev/gorest/pkg/dto/request"
 )
 
-// UserDTO is the canonical user representation returned by the API.
+// User is the canonical user representation returned by the API.
 // Groups is only populated when the request opted in (e.g. GetUserInput's
 // LoadGroups) — nil/omitted otherwise, not an empty-vs-absent distinction
 // worth modeling further.
-type UserDTO struct {
+type User struct {
 	ID        string       `json:"id" format:"uuid" doc:"User ID (UUID)"`
 	Username  string       `json:"username"`
 	Email     string       `json:"email"`
@@ -23,7 +23,7 @@ type UserDTO struct {
 	LastName  string       `json:"lastName"`
 	CreatedAt time.Time    `json:"createdAt"`
 	UpdatedAt time.Time    `json:"updatedAt"`
-	Groups    []GroupDTO   `json:"groups,omitempty" doc:"User's groups, only present when requested"`
+	Groups    []Group      `json:"groups,omitempty" doc:"User's groups, only present when requested"`
 	Meta      *UserMetaBox `json:"meta,omitempty" doc:"User's typed metadata, absent when not set"`
 }
 

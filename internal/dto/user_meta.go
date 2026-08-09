@@ -28,7 +28,7 @@ var (
 )
 
 // UserMetaBox is wrapper.Box[UserMeta] under its own name so existing call
-// sites (UserDTO.Meta *UserMetaBox, ...) don't need to change, and so it
+// sites (User.Meta *UserMetaBox, ...) don't need to change, and so it
 // gets its own name in generated OpenAPI component names instead of a
 // generic instantiation name. Must be a type alias (=), not a new
 // definition — Box[T]'s MarshalJSON/UnmarshalJSON/Schema methods need to
