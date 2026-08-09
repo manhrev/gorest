@@ -46,9 +46,9 @@ func Load() *Config {
 				CollectorHost: envOr("TRACING_COLLECTOR_HOST", "localhost"),
 				CollectorPort: 4317,
 				Secure:        envBoolOr("TRACING_SECURE", false),
-				Trace:         true,
-				Metric:        true,
-				Log:           true,
+				Trace:         envBoolOr("TRACING_TRACE", true),
+				Metric:        envBoolOr("TRACING_METRIC", false),
+				Log:           envBoolOr("TRACING_LOG", false),
 			},
 			Postgres: &pkgconfig.Postgres{
 				ConnectionParams: &pkgconfig.PostgresConnectionParams{

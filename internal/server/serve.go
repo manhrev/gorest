@@ -8,6 +8,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/manhrev/gorest/config"
 	grouprepo "github.com/manhrev/gorest/internal/repository/group"
@@ -69,7 +70,20 @@ func Run(ctx context.Context) error {
 	)
 
 	addr := cfg.HTTP.Host + ":" + cfg.HTTP.Port
-	httpSrv := &http.Server{Addr: addr, Handler: handler}
+	// otelhttp wraps the whole chain (CORS→Metadata→Logger→Recoverer→router)
+	// in a root span per request, named "METHOD /path" instead of otelhttp's
+	// default (the operation arg verbatim — every request would otherwise
+	// share one span name). Safe unconditionally: when tracing is disabled,
+	// no TracerProvider is ever registered, so this falls back to the global
+	// no-op provider (negligible overhead).
+	httpSrv := &http.Server{
+		Addr: addr,
+		Handler: otelhttp.NewHandler(handler, "",
+			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+				return r.Method + " " + r.URL.Path
+			}),
+		),
+	}
 
 	// On SIGINT/SIGTERM (ctx canceled by the caller): stop taking new
 	// requests, let in-flight ones finish (bounded by the timeout), then

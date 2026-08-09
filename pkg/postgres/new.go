@@ -13,12 +13,12 @@ import (
 
 	"github.com/manhrev/gorest/pkg/config"
 
+	"github.com/exaring/otelpgx"
 	"github.com/golang-migrate/migrate/v4"
 	migratepgx "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/jackc/pgx/v5/tracelog"
 )
 
 // DefaultMigrationsPath is used by New when cfg.IsMigrateSchema is set.
@@ -52,12 +52,10 @@ func New(ctx context.Context, appCfg *config.App, logger *slog.Logger) (*pgxpool
 	poolConfig.MaxConns = int32(cfg.MaxOpenConn)
 	poolConfig.MinConns = int32(cfg.MaxIdleConn) // pgxpool has no direct MaxIdleConn analog; MinConns is the closest fit
 
-	// if appCfg.Tracing.Enabled && appCfg.Tracing.Trace {
-	// 	poolConfig.ConnConfig.Tracer = &tracelog.TraceLog{
-	// 		Logger:   slogTracer{logger},
-	// 		LogLevel: tracelog.LogLevelInfo,
-	// 	}
-	// }
+	// Safe unconditionally: when tracing is disabled, no TracerProvider is
+	// ever registered, so otelpgx falls back to the global no-op provider
+	// (negligible overhead), matching the otelhttp wiring in serve.go.
+	poolConfig.ConnConfig.Tracer = otelpgx.NewTracer(otelpgx.WithDisableAcquireTracer())
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
@@ -122,27 +120,4 @@ func Migrate(pool *pgxpool.Pool, migrationsPath string, logger *slog.Logger) err
 	}
 
 	return nil
-}
-
-// slogTracer adapts *slog.Logger to pgx's tracelog.Logger interface.
-type slogTracer struct {
-	logger *slog.Logger
-}
-
-func (t slogTracer) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	args := make([]any, 0, len(data)*2)
-	for k, v := range data {
-		args = append(args, k, v)
-	}
-
-	switch level {
-	case tracelog.LogLevelTrace, tracelog.LogLevelDebug:
-		t.logger.DebugContext(ctx, msg, args...)
-	case tracelog.LogLevelWarn:
-		t.logger.WarnContext(ctx, msg, args...)
-	case tracelog.LogLevelError:
-		t.logger.ErrorContext(ctx, msg, args...)
-	default:
-		t.logger.InfoContext(ctx, msg, args...)
-	}
 }
