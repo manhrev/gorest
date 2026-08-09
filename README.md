@@ -4,17 +4,10 @@ HTTP API on [huma](https://github.com/danielgtaylor/huma) v2 (typed handlers, au
 
 ## Requirements
 
-- Go 1.26+
+- Go 1.26.2 ([go.dev/doc/install](https://go.dev/doc/install))
 - Postgres 18 (or compatible)
 
 ## Setup
-
-Install Go 1.26+ ([go.dev/doc/install](https://go.dev/doc/install)), or via a version manager:
-
-```bash
-# https://github.com/go-nv/goenv, https://asdf-vm.com, or just download from go.dev
-goenv install 1.26.0 && goenv local 1.26.0
-```
 
 ```bash
 cp example.env .env
