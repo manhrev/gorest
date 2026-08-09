@@ -74,7 +74,7 @@ func (s *Server) registerUserRoutes(api huma.API, basePath string) {
 }
 
 func (s *Server) CreateUser(ctx context.Context, input *dto.CreateUserInput) (*response.Output[dto.UserDTO], error) {
-	u, err := s.userSvc.Create(ctx, input.Body.Username, input.Body.Email, input.Body.FirstName, input.Body.LastName)
+	u, err := s.userSvc.Create(ctx, input.Body.Username, input.Body.Email, input.Body.FirstName, input.Body.LastName, input.Body.Meta)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}
@@ -90,7 +90,7 @@ func (s *Server) GetUser(ctx context.Context, input *dto.GetUserInput) (*respons
 }
 
 func (s *Server) UpdateUser(ctx context.Context, input *dto.UpdateUserInput) (*response.Output[dto.UserDTO], error) {
-	u, err := s.userSvc.UpdateByID(ctx, input.ID, input.Body.FirstName, input.Body.LastName, input.Body.Email)
+	u, err := s.userSvc.UpdateByID(ctx, input.ID, input.Body.FirstName, input.Body.LastName, input.Body.Email, input.Body.Meta)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}

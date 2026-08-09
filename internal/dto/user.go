@@ -16,23 +16,25 @@ import (
 // LoadGroups) — nil/omitted otherwise, not an empty-vs-absent distinction
 // worth modeling further.
 type UserDTO struct {
-	ID        string     `json:"id" format:"uuid" doc:"User ID (UUID)"`
-	Username  string     `json:"username"`
-	Email     string     `json:"email"`
-	FirstName string     `json:"firstName"`
-	LastName  string     `json:"lastName"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
-	Groups    []GroupDTO `json:"groups,omitempty" doc:"User's groups, only present when requested"`
+	ID        string       `json:"id" format:"uuid" doc:"User ID (UUID)"`
+	Username  string       `json:"username"`
+	Email     string       `json:"email"`
+	FirstName string       `json:"firstName"`
+	LastName  string       `json:"lastName"`
+	CreatedAt time.Time    `json:"createdAt"`
+	UpdatedAt time.Time    `json:"updatedAt"`
+	Groups    []GroupDTO   `json:"groups,omitempty" doc:"User's groups, only present when requested"`
+	Meta      *UserMetaBox `json:"meta,omitempty" doc:"User's typed metadata, absent when not set"`
 }
 
 // CreateUserInput represents the create-user operation request.
 type CreateUserInput struct {
 	Body struct {
-		Username  string `json:"username" example:"homer" doc:"Unique username"`
-		Email     string `json:"email" format:"email" example:"homer@example.com" doc:"Email address"`
-		FirstName string `json:"firstName" example:"Homer" doc:"First name"`
-		LastName  string `json:"lastName" example:"Simpson" doc:"Last name"`
+		Username  string       `json:"username" example:"homer" doc:"Unique username"`
+		Email     string       `json:"email" format:"email" example:"homer@example.com" doc:"Email address"`
+		FirstName string       `json:"firstName" example:"Homer" doc:"First name"`
+		LastName  string       `json:"lastName" example:"Simpson" doc:"Last name"`
+		Meta      *UserMetaBox `json:"meta,omitempty" doc:"Typed metadata, omit for none"`
 	}
 }
 
@@ -44,13 +46,18 @@ type GetUserInput struct {
 
 // UpdateUserInput represents the update-user-by-id operation request.
 // Every body field is optional; only fields present in the JSON body are
-// changed, the rest are left as-is (nil pointer = "don't touch").
+// changed, the rest are left as-is (nil pointer = "don't touch"). Meta
+// follows the same rule: omit to leave unchanged, send a value to replace
+// it wholesale — there's no way to explicitly clear an existing meta back
+// to unset via this endpoint (not requested — add a distinct signal, e.g. a
+// tri-state wrapper, if that's needed later).
 type UpdateUserInput struct {
 	ID   string `path:"id" format:"uuid" doc:"User ID (UUID)"`
 	Body struct {
-		FirstName *string `json:"firstName,omitempty" doc:"New first name, omit to leave unchanged"`
-		LastName  *string `json:"lastName,omitempty" doc:"New last name, omit to leave unchanged"`
-		Email     *string `json:"email,omitempty" format:"email" doc:"New email, omit to leave unchanged"`
+		FirstName *string      `json:"firstName,omitempty" doc:"New first name, omit to leave unchanged"`
+		LastName  *string      `json:"lastName,omitempty" doc:"New last name, omit to leave unchanged"`
+		Email     *string      `json:"email,omitempty" format:"email" doc:"New email, omit to leave unchanged"`
+		Meta      *UserMetaBox `json:"meta,omitempty" doc:"New typed metadata (replaces any existing value), omit to leave unchanged"`
 	}
 }
 
@@ -86,11 +93,12 @@ type AddUsersToGroupsInput struct {
 // CreateUserWithGroups is one entry of CreateUsersWithGroupsInput: a user to
 // create plus the groups to add it to (GroupIds may be empty).
 type CreateUserWithGroups struct {
-	Username  string   `json:"username" example:"homer" doc:"Unique username"`
-	Email     string   `json:"email" format:"email" example:"homer@example.com" doc:"Email address"`
-	FirstName string   `json:"firstName" example:"Homer" doc:"First name"`
-	LastName  string   `json:"lastName" example:"Simpson" doc:"Last name"`
-	GroupIds  []string `json:"groupIds,omitempty" format:"uuid" doc:"Groups to add this user to"`
+	Username  string       `json:"username" example:"homer" doc:"Unique username"`
+	Email     string       `json:"email" format:"email" example:"homer@example.com" doc:"Email address"`
+	FirstName string       `json:"firstName" example:"Homer" doc:"First name"`
+	LastName  string       `json:"lastName" example:"Simpson" doc:"Last name"`
+	Meta      *UserMetaBox `json:"meta,omitempty" doc:"Typed metadata, omit for none"`
+	GroupIds  []string     `json:"groupIds,omitempty" format:"uuid" doc:"Groups to add this user to"`
 }
 
 // CreateUsersWithGroupsInput represents the create-users-with-groups

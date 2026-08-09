@@ -4,10 +4,24 @@ sql:
    uuid_pkg: google
    pattern: "migrations/*.sql"
 type_system: database/sql
+types:
+  # Deliberately couples generated pkg/db/model to internal/dto: lets bob
+  # decode users.meta straight into the typed union on scan (types.JSON[T]
+  # round-trips via T's json.Marshaler/Unmarshaler, UserMetaBox already
+  # implements both) instead of the model holding raw bytes for a converter
+  # to decode by hand. Don't "clean up" this import on a future regen.
+  "types.JSON[dto.UserMetaBox]":
+    imports:
+      - '"github.com/stephenafamo/bob/types"'
+      - '"github.com/manhrev/gorest/internal/dto"'
 replacements:
   - match:
       db_type: "uuid"
     replace: "string"
+  - tables: ["users"]
+    match:
+      name: "meta"
+    replace: "types.JSON[dto.UserMetaBox]"
 plugins:
   dbinfo:
     destination: ./pkg/db/dbinfo

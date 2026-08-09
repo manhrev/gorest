@@ -39,8 +39,8 @@ func New(repo *userrepo.Repository, groupRepo *grouprepo.Repository, txRunner *t
 	return &Service{repo: repo, groupRepo: groupRepo, txRunner: txRunner}
 }
 
-func (s *Service) Create(ctx context.Context, username, email, firstName, lastName string) (dto.UserDTO, error) {
-	m, err := s.repo.Create(ctx, newUserSetter(username, email, firstName, lastName))
+func (s *Service) Create(ctx context.Context, username, email, firstName, lastName string, meta *dto.UserMetaBox) (dto.UserDTO, error) {
+	m, err := s.repo.Create(ctx, newUserSetter(username, email, firstName, lastName, meta))
 	if err != nil {
 		return dto.UserDTO{}, mapCreateErr(err)
 	}
@@ -48,7 +48,7 @@ func (s *Service) Create(ctx context.Context, username, email, firstName, lastNa
 	return converter.UserToDto(m), nil
 }
 
-func newUserSetter(username, email, firstName, lastName string) *model.UserSetter {
+func newUserSetter(username, email, firstName, lastName string, meta *dto.UserMetaBox) *model.UserSetter {
 	id := uuid.New()
 	now := time.Now().UTC()
 	return &model.UserSetter{
@@ -59,6 +59,7 @@ func newUserSetter(username, email, firstName, lastName string) *model.UserSette
 		LastName:  &lastName,
 		CreatedAt: &now,
 		UpdatedAt: &now,
+		Meta:      converter.UserMetaToSetterField(meta),
 	}
 }
 
@@ -93,12 +94,14 @@ func (s *Service) GetByID(ctx context.Context, id string, loadGroups bool) (dto.
 }
 
 // UpdateByID applies a partial update: nil fields are left unchanged (same
-// contract as the repository's model.UserSetter).
-func (s *Service) UpdateByID(ctx context.Context, id string, firstName, lastName, email *string) (dto.UserDTO, error) {
+// contract as the repository's model.UserSetter). meta, when non-nil,
+// replaces any existing meta wholesale (no partial-merge of its contents).
+func (s *Service) UpdateByID(ctx context.Context, id string, firstName, lastName, email *string, meta *dto.UserMetaBox) (dto.UserDTO, error) {
 	m, err := s.repo.UpdateById(ctx, id, &model.UserSetter{
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
+		Meta:      converter.UserMetaToSetterField(meta),
 	})
 	if err != nil {
 		if errors.Is(err, repoerr.ErrNotFound) {
@@ -157,7 +160,7 @@ func (s *Service) CreateUsersAndAddToGroups(ctx context.Context, users []dto.Cre
 
 		userGroups := make(map[string][]string)
 		for _, u := range users {
-			m, err := userRepoTx.Create(ctx, newUserSetter(u.Username, u.Email, u.FirstName, u.LastName))
+			m, err := userRepoTx.Create(ctx, newUserSetter(u.Username, u.Email, u.FirstName, u.LastName, u.Meta))
 			if err != nil {
 				return mapCreateErr(err)
 			}

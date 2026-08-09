@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/manhrev/gorest/internal/dto"
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/dialect"
@@ -20,19 +21,21 @@ import (
 	"github.com/stephenafamo/bob/expr"
 	"github.com/stephenafamo/bob/mods"
 	"github.com/stephenafamo/bob/orm"
+	"github.com/stephenafamo/bob/types"
 	"github.com/stephenafamo/bob/types/pgtypes"
 	"github.com/stephenafamo/scan"
 )
 
 // User is an object representing the database table.
 type User struct {
-	ID        string    `db:"id,pk" `
-	Username  string    `db:"username" `
-	Email     string    `db:"email" `
-	FirstName string    `db:"first_name" `
-	LastName  string    `db:"last_name" `
-	CreatedAt time.Time `db:"created_at" `
-	UpdatedAt time.Time `db:"updated_at" `
+	ID        string                                `db:"id,pk" `
+	Username  string                                `db:"username" `
+	Email     string                                `db:"email" `
+	FirstName string                                `db:"first_name" `
+	LastName  string                                `db:"last_name" `
+	CreatedAt time.Time                             `db:"created_at" `
+	UpdatedAt time.Time                             `db:"updated_at" `
+	Meta      sql.Null[types.JSON[dto.UserMetaBox]] `db:"meta" `
 
 	R userR `db:"-" `
 
@@ -65,7 +68,7 @@ type userRLoaded struct {
 
 func buildUserColumns(tableName string) userColumns {
 	columnsExpr := expr.NewColumnsExpr(
-		"id", "username", "email", "first_name", "last_name", "created_at", "updated_at",
+		"id", "username", "email", "first_name", "last_name", "created_at", "updated_at", "meta",
 	)
 
 	if tableName != "" {
@@ -82,6 +85,7 @@ func buildUserColumns(tableName string) userColumns {
 		LastName:    buildUserColumn(tableName, "last_name"),
 		CreatedAt:   buildUserColumn(tableName, "created_at"),
 		UpdatedAt:   buildUserColumn(tableName, "updated_at"),
+		Meta:        buildUserColumn(tableName, "meta"),
 	}
 }
 
@@ -95,6 +99,7 @@ type userColumns struct {
 	LastName   userColumn
 	CreatedAt  userColumn
 	UpdatedAt  userColumn
+	Meta       userColumn
 }
 
 // Alias returns the current table alias for the columns set.
@@ -140,17 +145,18 @@ func (c userColumn) ShouldOmitParens() bool {
 // All values are optional, and do not have to be set
 // Generated columns are not included
 type UserSetter struct {
-	ID        *string    `db:"id,pk" `
-	Username  *string    `db:"username" `
-	Email     *string    `db:"email" `
-	FirstName *string    `db:"first_name" `
-	LastName  *string    `db:"last_name" `
-	CreatedAt *time.Time `db:"created_at" `
-	UpdatedAt *time.Time `db:"updated_at" `
+	ID        *string                                `db:"id,pk" `
+	Username  *string                                `db:"username" `
+	Email     *string                                `db:"email" `
+	FirstName *string                                `db:"first_name" `
+	LastName  *string                                `db:"last_name" `
+	CreatedAt *time.Time                             `db:"created_at" `
+	UpdatedAt *time.Time                             `db:"updated_at" `
+	Meta      *sql.Null[types.JSON[dto.UserMetaBox]] `db:"meta" `
 }
 
 func (s UserSetter) SetColumns() []string {
-	vals := make([]string, 0, 7)
+	vals := make([]string, 0, 8)
 	if s.ID != nil {
 		vals = append(vals, "id")
 	}
@@ -171,6 +177,9 @@ func (s UserSetter) SetColumns() []string {
 	}
 	if s.UpdatedAt != nil {
 		vals = append(vals, "updated_at")
+	}
+	if s.Meta != nil {
+		vals = append(vals, "meta")
 	}
 	return vals
 }
@@ -230,6 +239,15 @@ func (s UserSetter) Overwrite(t *User) {
 				return *new(time.Time)
 			}
 			return *s.UpdatedAt
+		}()
+	}
+	if s.Meta != nil {
+		t.Meta = func() sql.Null[types.JSON[dto.UserMetaBox]] {
+			if s.Meta == nil {
+				return *new(sql.Null[types.JSON[dto.UserMetaBox]])
+			}
+			v := s.Meta
+			return *v
 		}()
 	}
 }
@@ -310,6 +328,17 @@ func (s *UserSetter) Apply(q *dialect.InsertQuery) {
 				}
 				return *s.UpdatedAt
 			}()).WriteSQL(ctx, w, d, start)
+		}), bob.ExpressionFunc(func(ctx context.Context, w io.StringWriter, d bob.Dialect, start int) ([]any, error) {
+			if s.Meta == nil {
+				return psql.Raw("DEFAULT").WriteSQL(ctx, w, d, start)
+			}
+			return psql.Arg(func() sql.Null[types.JSON[dto.UserMetaBox]] {
+				if s.Meta == nil {
+					return *new(sql.Null[types.JSON[dto.UserMetaBox]])
+				}
+				v := s.Meta
+				return *v
+			}()).WriteSQL(ctx, w, d, start)
 		}))
 }
 
@@ -318,7 +347,7 @@ func (s UserSetter) UpdateMod() bob.Mod[*dialect.UpdateQuery] {
 }
 
 func (s UserSetter) Expressions(prefix ...string) []bob.Expression {
-	exprs := make([]bob.Expression, 0, 7)
+	exprs := make([]bob.Expression, 0, 8)
 
 	if s.ID != nil {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
@@ -369,6 +398,13 @@ func (s UserSetter) Expressions(prefix ...string) []bob.Expression {
 		}})
 	}
 
+	if s.Meta != nil {
+		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
+			psql.Quote(append(prefix, "meta")...),
+			psql.Arg(s.Meta),
+		}})
+	}
+
 	return exprs
 }
 
@@ -379,7 +415,7 @@ func userScanMapper(ctx context.Context, cols []string) (scan.BeforeFunc, func(a
 		idx int
 		dst func(o *User) any
 	}
-	targets := make([]target, 0, 7)
+	targets := make([]target, 0, 8)
 	for i, col := range cols {
 		switch col {
 		case "id":
@@ -396,6 +432,8 @@ func userScanMapper(ctx context.Context, cols []string) (scan.BeforeFunc, func(a
 			targets = append(targets, target{i, func(o *User) any { return &o.CreatedAt }})
 		case "updated_at":
 			targets = append(targets, target{i, func(o *User) any { return &o.UpdatedAt }})
+		case "meta":
+			targets = append(targets, target{i, func(o *User) any { return &o.Meta }})
 		}
 	}
 
@@ -773,6 +811,7 @@ type userWhere[Q psql.Filterable] struct {
 	LastName  psql.WhereMod[Q, string]
 	CreatedAt psql.WhereMod[Q, time.Time]
 	UpdatedAt psql.WhereMod[Q, time.Time]
+	Meta      psql.WhereNullMod[Q, types.JSON[dto.UserMetaBox]]
 	R         userWhereR[Q]
 }
 
@@ -790,6 +829,7 @@ func buildUserWhere[Q psql.Filterable](cols userColumns) userWhere[Q] {
 		LastName:  psql.Where[Q, string](cols.LastName.Expression),
 		CreatedAt: psql.Where[Q, time.Time](cols.CreatedAt.Expression),
 		UpdatedAt: psql.Where[Q, time.Time](cols.UpdatedAt.Expression),
+		Meta:      psql.WhereNull[Q, types.JSON[dto.UserMetaBox]](cols.Meta.Expression),
 		R:         userWhereR[Q]{cols: cols},
 	}
 }
@@ -826,6 +866,7 @@ type userPreloadBuf struct {
 	LastName  sql.Null[string]
 	CreatedAt sql.Null[time.Time]
 	UpdatedAt sql.Null[time.Time]
+	Meta      sql.Null[types.JSON[dto.UserMetaBox]]
 }
 
 // userScanMapperNullable maps the preloaded user
@@ -840,7 +881,7 @@ func userScanMapperNullable(prefix string) scan.Mapper[*User] {
 			idx int
 			dst func(b *userPreloadBuf) any
 		}
-		targets := make([]target, 0, 7)
+		targets := make([]target, 0, 8)
 		for i, col := range cols {
 			name, ok := strings.CutPrefix(col, prefix)
 			if !ok {
@@ -861,6 +902,8 @@ func userScanMapperNullable(prefix string) scan.Mapper[*User] {
 				targets = append(targets, target{i, func(b *userPreloadBuf) any { return &b.CreatedAt }})
 			case "updated_at":
 				targets = append(targets, target{i, func(b *userPreloadBuf) any { return &b.UpdatedAt }})
+			case "meta":
+				targets = append(targets, target{i, func(b *userPreloadBuf) any { return &b.Meta }})
 			}
 		}
 
@@ -889,7 +932,8 @@ func userScanMapperNullable(prefix string) scan.Mapper[*User] {
 					!(buf.FirstName.Valid) &&
 					!(buf.LastName.Valid) &&
 					!(buf.CreatedAt.Valid) &&
-					!(buf.UpdatedAt.Valid) {
+					!(buf.UpdatedAt.Valid) &&
+					!(buf.Meta.Valid) {
 					return nil, nil
 				}
 
@@ -915,6 +959,7 @@ func userScanMapperNullable(prefix string) scan.Mapper[*User] {
 				if buf.UpdatedAt.Valid {
 					o.UpdatedAt = buf.UpdatedAt.V
 				}
+				o.Meta = buf.Meta
 				return o, nil
 			}
 	}

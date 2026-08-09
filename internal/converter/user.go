@@ -3,6 +3,10 @@
 package converter
 
 import (
+	"database/sql"
+
+	"github.com/stephenafamo/bob/types"
+
 	"github.com/manhrev/gorest/internal/dto"
 	"github.com/manhrev/gorest/pkg/db/model"
 )
@@ -18,6 +22,12 @@ func UserToDto(m *model.User) dto.UserDTO {
 		UpdatedAt: m.UpdatedAt,
 	}
 
+	// bob already decoded this into UserMetaBox on scan (types.JSON[T] uses
+	// T's json.Unmarshaler) — no manual decode needed here.
+	if m.Meta.Valid {
+		d.Meta = &m.Meta.V.Val
+	}
+
 	// Only set when the caller preloaded it (m.R.UserGroups + each
 	// UserGroup's .R.Group) — see repo.FirstById's loadGroups param.
 	if m.R.Loaded.UserGroups {
@@ -30,6 +40,16 @@ func UserToDto(m *model.User) dto.UserDTO {
 	}
 
 	return d
+}
+
+// UserMetaToSetterField converts an API-facing *dto.UserMetaBox to the
+// model.UserSetter.Meta shape. nil -> nil (column left untouched on update,
+// or omitted -> SQL NULL on insert since it has no default).
+func UserMetaToSetterField(meta *dto.UserMetaBox) *sql.Null[types.JSON[dto.UserMetaBox]] {
+	if meta == nil {
+		return nil
+	}
+	return &sql.Null[types.JSON[dto.UserMetaBox]]{Valid: true, V: types.NewJSON(*meta)}
 }
 
 func UsersToDtos(rows model.UserSlice) []dto.UserDTO {

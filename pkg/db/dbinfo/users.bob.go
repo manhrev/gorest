@@ -78,6 +78,15 @@ var Users = Table[
 			Generated: false,
 			AutoIncr:  false,
 		},
+		Meta: column{
+			Name:      "meta",
+			DBType:    "jsonb",
+			Default:   "NULL",
+			Comment:   "",
+			Nullable:  true,
+			Generated: false,
+			AutoIncr:  false,
+		},
 	},
 	Indexes: userIndexes{
 		UsersPkey: index{
@@ -179,11 +188,12 @@ type userColumns struct {
 	LastName  column
 	CreatedAt column
 	UpdatedAt column
+	Meta      column
 }
 
 func (c userColumns) AsSlice() []column {
 	return []column{
-		c.ID, c.Username, c.Email, c.FirstName, c.LastName, c.CreatedAt, c.UpdatedAt,
+		c.ID, c.Username, c.Email, c.FirstName, c.LastName, c.CreatedAt, c.UpdatedAt, c.Meta,
 	}
 }
 

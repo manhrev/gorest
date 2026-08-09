@@ -3,7 +3,14 @@
 
 package model
 
-import "github.com/stephenafamo/bob"
+import (
+	"database/sql"
+	"database/sql/driver"
+
+	"github.com/manhrev/gorest/internal/dto"
+	"github.com/stephenafamo/bob"
+	"github.com/stephenafamo/bob/types"
+)
 
 // Set the testDB to enable tests that use the database
 var testDB bob.Transactor[bob.Tx]
@@ -16,3 +23,9 @@ var _ bob.HookableType = &UserGroup{}
 
 // Make sure the type User runs hooks after queries
 var _ bob.HookableType = &User{}
+
+// Make sure the type types.JSON[dto.UserMetaBox] satisfies database/sql.Scanner
+var _ sql.Scanner = (*types.JSON[dto.UserMetaBox])(nil)
+
+// Make sure the type types.JSON[dto.UserMetaBox] satisfies database/sql/driver.Valuer
+var _ driver.Valuer = *new(types.JSON[dto.UserMetaBox])
