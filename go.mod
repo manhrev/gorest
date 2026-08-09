@@ -6,6 +6,7 @@ require github.com/danielgtaylor/huma/v2 v2.39.1
 
 require (
 	github.com/aarondl/opt v0.0.0-20250607033636-982744e1bd65
+	github.com/avast/retry-go/v4 v4.7.0
 	github.com/go-redsync/redsync/v4 v4.17.0
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
