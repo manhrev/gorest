@@ -201,6 +201,7 @@ func (Box[T]) Schema(r huma.Registry) *huma.Schema {
 	oneOf := make([]*huma.Schema, len(variants))
 	for i, v := range variants {
 		s := r.Schema(v.typ, false, v.typ.Name())
+		s.Title = v.typ.Name()
 		s.Properties["type"] = &huma.Schema{Type: huma.TypeString, Enum: []any{v.kind}}
 		s.Required = append(s.Required, "type")
 		oneOf[i] = s

@@ -14,6 +14,10 @@ types:
     imports:
       - '"github.com/stephenafamo/bob/types"'
       - '"github.com/manhrev/gorest/internal/dto"'
+  "types.JSON[dto.GroupInfoBox]":
+    imports:
+      - '"github.com/stephenafamo/bob/types"'
+      - '"github.com/manhrev/gorest/internal/dto"'
 replacements:
   - match:
       db_type: "uuid"
@@ -22,6 +26,10 @@ replacements:
     match:
       name: "meta"
     replace: "types.JSON[dto.UserMetaBox]"
+  - tables: ["groups"]
+    match:
+      name: "group_info"
+    replace: "types.JSON[dto.GroupInfoBox]"
 plugins:
   dbinfo:
     destination: ./pkg/db/dbinfo

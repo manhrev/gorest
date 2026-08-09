@@ -32,7 +32,7 @@ func New(repo *grouprepo.Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, name, description string) (dto.GroupDTO, error) {
+func (s *Service) Create(ctx context.Context, name, description string, groupInfo *dto.GroupInfoBox) (dto.GroupDTO, error) {
 	id := uuid.New()
 	now := time.Now().UTC()
 
@@ -42,6 +42,7 @@ func (s *Service) Create(ctx context.Context, name, description string) (dto.Gro
 		Description: &sql.Null[string]{V: description, Valid: description != ""},
 		CreatedAt:   &now,
 		UpdatedAt:   &now,
+		GroupInfo:   converter.GroupInfoToSetterField(groupInfo),
 	})
 	if err != nil {
 		switch {
@@ -70,9 +71,10 @@ func (s *Service) GetByID(ctx context.Context, id string) (dto.GroupDTO, error) 
 }
 
 // UpdateByID applies a partial update: nil fields are left unchanged (same
-// contract as the repository's model.GroupSetter).
-func (s *Service) UpdateByID(ctx context.Context, id string, name, description *string) (dto.GroupDTO, error) {
-	setter := &model.GroupSetter{Name: name}
+// contract as the repository's model.GroupSetter). groupInfo, when
+// non-nil, replaces any existing group info wholesale.
+func (s *Service) UpdateByID(ctx context.Context, id string, name, description *string, groupInfo *dto.GroupInfoBox) (dto.GroupDTO, error) {
+	setter := &model.GroupSetter{Name: name, GroupInfo: converter.GroupInfoToSetterField(groupInfo)}
 	if description != nil {
 		setter.Description = &sql.Null[string]{V: *description, Valid: *description != ""}
 	}

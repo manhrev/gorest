@@ -8,18 +8,20 @@ import (
 
 // GroupDTO is the canonical group representation returned by the API.
 type GroupDTO struct {
-	ID          string    `json:"id" format:"uuid" doc:"Group ID (UUID)"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID          string        `json:"id" format:"uuid" doc:"Group ID (UUID)"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	CreatedAt   time.Time     `json:"createdAt"`
+	UpdatedAt   time.Time     `json:"updatedAt"`
+	GroupInfo   *GroupInfoBox `json:"groupInfo,omitempty" doc:"Typed group info, absent when not set"`
 }
 
 // CreateGroupInput represents the create-group operation request.
 type CreateGroupInput struct {
 	Body struct {
-		Name        string `json:"name" example:"Admins" doc:"Unique group name"`
-		Description string `json:"description,omitempty" doc:"Group description"`
+		Name        string        `json:"name" example:"Admins" doc:"Unique group name"`
+		Description string        `json:"description,omitempty" doc:"Group description"`
+		GroupInfo   *GroupInfoBox `json:"groupInfo,omitempty" doc:"Typed group info, omit for none"`
 	}
 }
 
@@ -34,8 +36,9 @@ type GetGroupInput struct {
 type UpdateGroupInput struct {
 	ID   string `path:"id" format:"uuid" doc:"Group ID (UUID)"`
 	Body struct {
-		Name        *string `json:"name,omitempty" doc:"New name, omit to leave unchanged"`
-		Description *string `json:"description,omitempty" doc:"New description, omit to leave unchanged"`
+		Name        *string       `json:"name,omitempty" doc:"New name, omit to leave unchanged"`
+		Description *string       `json:"description,omitempty" doc:"New description, omit to leave unchanged"`
+		GroupInfo   *GroupInfoBox `json:"groupInfo,omitempty" doc:"New typed group info (replaces any existing value), omit to leave unchanged"`
 	}
 }
 

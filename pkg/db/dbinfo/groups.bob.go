@@ -60,6 +60,15 @@ var Groups = Table[
 			Generated: false,
 			AutoIncr:  false,
 		},
+		GroupInfo: column{
+			Name:      "group_info",
+			DBType:    "jsonb",
+			Default:   "NULL",
+			Comment:   "",
+			Nullable:  true,
+			Generated: false,
+			AutoIncr:  false,
+		},
 	},
 	Indexes: groupIndexes{
 		GroupsPkey: index{
@@ -137,11 +146,12 @@ type groupColumns struct {
 	Description column
 	CreatedAt   column
 	UpdatedAt   column
+	GroupInfo   column
 }
 
 func (c groupColumns) AsSlice() []column {
 	return []column{
-		c.ID, c.Name, c.Description, c.CreatedAt, c.UpdatedAt,
+		c.ID, c.Name, c.Description, c.CreatedAt, c.UpdatedAt, c.GroupInfo,
 	}
 }
 

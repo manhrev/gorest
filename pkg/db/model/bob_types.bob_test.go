@@ -24,6 +24,12 @@ var _ bob.HookableType = &UserGroup{}
 // Make sure the type User runs hooks after queries
 var _ bob.HookableType = &User{}
 
+// Make sure the type types.JSON[dto.GroupInfoBox] satisfies database/sql.Scanner
+var _ sql.Scanner = (*types.JSON[dto.GroupInfoBox])(nil)
+
+// Make sure the type types.JSON[dto.GroupInfoBox] satisfies database/sql/driver.Valuer
+var _ driver.Valuer = *new(types.JSON[dto.GroupInfoBox])
+
 // Make sure the type types.JSON[dto.UserMetaBox] satisfies database/sql.Scanner
 var _ sql.Scanner = (*types.JSON[dto.UserMetaBox])(nil)
 

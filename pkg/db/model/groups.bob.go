@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/manhrev/gorest/internal/dto"
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/dialect"
@@ -20,17 +21,19 @@ import (
 	"github.com/stephenafamo/bob/expr"
 	"github.com/stephenafamo/bob/mods"
 	"github.com/stephenafamo/bob/orm"
+	"github.com/stephenafamo/bob/types"
 	"github.com/stephenafamo/bob/types/pgtypes"
 	"github.com/stephenafamo/scan"
 )
 
 // Group is an object representing the database table.
 type Group struct {
-	ID          string           `db:"id,pk" `
-	Name        string           `db:"name" `
-	Description sql.Null[string] `db:"description" `
-	CreatedAt   time.Time        `db:"created_at" `
-	UpdatedAt   time.Time        `db:"updated_at" `
+	ID          string                                 `db:"id,pk" `
+	Name        string                                 `db:"name" `
+	Description sql.Null[string]                       `db:"description" `
+	CreatedAt   time.Time                              `db:"created_at" `
+	UpdatedAt   time.Time                              `db:"updated_at" `
+	GroupInfo   sql.Null[types.JSON[dto.GroupInfoBox]] `db:"group_info" `
 
 	R groupR `db:"-" `
 
@@ -63,7 +66,7 @@ type groupRLoaded struct {
 
 func buildGroupColumns(tableName string) groupColumns {
 	columnsExpr := expr.NewColumnsExpr(
-		"id", "name", "description", "created_at", "updated_at",
+		"id", "name", "description", "created_at", "updated_at", "group_info",
 	)
 
 	if tableName != "" {
@@ -78,6 +81,7 @@ func buildGroupColumns(tableName string) groupColumns {
 		Description: buildGroupColumn(tableName, "description"),
 		CreatedAt:   buildGroupColumn(tableName, "created_at"),
 		UpdatedAt:   buildGroupColumn(tableName, "updated_at"),
+		GroupInfo:   buildGroupColumn(tableName, "group_info"),
 	}
 }
 
@@ -89,6 +93,7 @@ type groupColumns struct {
 	Description groupColumn
 	CreatedAt   groupColumn
 	UpdatedAt   groupColumn
+	GroupInfo   groupColumn
 }
 
 // Alias returns the current table alias for the columns set.
@@ -134,15 +139,16 @@ func (c groupColumn) ShouldOmitParens() bool {
 // All values are optional, and do not have to be set
 // Generated columns are not included
 type GroupSetter struct {
-	ID          *string           `db:"id,pk" `
-	Name        *string           `db:"name" `
-	Description *sql.Null[string] `db:"description" `
-	CreatedAt   *time.Time        `db:"created_at" `
-	UpdatedAt   *time.Time        `db:"updated_at" `
+	ID          *string                                 `db:"id,pk" `
+	Name        *string                                 `db:"name" `
+	Description *sql.Null[string]                       `db:"description" `
+	CreatedAt   *time.Time                              `db:"created_at" `
+	UpdatedAt   *time.Time                              `db:"updated_at" `
+	GroupInfo   *sql.Null[types.JSON[dto.GroupInfoBox]] `db:"group_info" `
 }
 
 func (s GroupSetter) SetColumns() []string {
-	vals := make([]string, 0, 5)
+	vals := make([]string, 0, 6)
 	if s.ID != nil {
 		vals = append(vals, "id")
 	}
@@ -157,6 +163,9 @@ func (s GroupSetter) SetColumns() []string {
 	}
 	if s.UpdatedAt != nil {
 		vals = append(vals, "updated_at")
+	}
+	if s.GroupInfo != nil {
+		vals = append(vals, "group_info")
 	}
 	return vals
 }
@@ -201,6 +210,15 @@ func (s GroupSetter) Overwrite(t *Group) {
 				return *new(time.Time)
 			}
 			return *s.UpdatedAt
+		}()
+	}
+	if s.GroupInfo != nil {
+		t.GroupInfo = func() sql.Null[types.JSON[dto.GroupInfoBox]] {
+			if s.GroupInfo == nil {
+				return *new(sql.Null[types.JSON[dto.GroupInfoBox]])
+			}
+			v := s.GroupInfo
+			return *v
 		}()
 	}
 }
@@ -262,6 +280,17 @@ func (s *GroupSetter) Apply(q *dialect.InsertQuery) {
 				}
 				return *s.UpdatedAt
 			}()).WriteSQL(ctx, w, d, start)
+		}), bob.ExpressionFunc(func(ctx context.Context, w io.StringWriter, d bob.Dialect, start int) ([]any, error) {
+			if s.GroupInfo == nil {
+				return psql.Raw("DEFAULT").WriteSQL(ctx, w, d, start)
+			}
+			return psql.Arg(func() sql.Null[types.JSON[dto.GroupInfoBox]] {
+				if s.GroupInfo == nil {
+					return *new(sql.Null[types.JSON[dto.GroupInfoBox]])
+				}
+				v := s.GroupInfo
+				return *v
+			}()).WriteSQL(ctx, w, d, start)
 		}))
 }
 
@@ -270,7 +299,7 @@ func (s GroupSetter) UpdateMod() bob.Mod[*dialect.UpdateQuery] {
 }
 
 func (s GroupSetter) Expressions(prefix ...string) []bob.Expression {
-	exprs := make([]bob.Expression, 0, 5)
+	exprs := make([]bob.Expression, 0, 6)
 
 	if s.ID != nil {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
@@ -307,6 +336,13 @@ func (s GroupSetter) Expressions(prefix ...string) []bob.Expression {
 		}})
 	}
 
+	if s.GroupInfo != nil {
+		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
+			psql.Quote(append(prefix, "group_info")...),
+			psql.Arg(s.GroupInfo),
+		}})
+	}
+
 	return exprs
 }
 
@@ -317,7 +353,7 @@ func groupScanMapper(ctx context.Context, cols []string) (scan.BeforeFunc, func(
 		idx int
 		dst func(o *Group) any
 	}
-	targets := make([]target, 0, 5)
+	targets := make([]target, 0, 6)
 	for i, col := range cols {
 		switch col {
 		case "id":
@@ -330,6 +366,8 @@ func groupScanMapper(ctx context.Context, cols []string) (scan.BeforeFunc, func(
 			targets = append(targets, target{i, func(o *Group) any { return &o.CreatedAt }})
 		case "updated_at":
 			targets = append(targets, target{i, func(o *Group) any { return &o.UpdatedAt }})
+		case "group_info":
+			targets = append(targets, target{i, func(o *Group) any { return &o.GroupInfo }})
 		}
 	}
 
@@ -705,6 +743,7 @@ type groupWhere[Q psql.Filterable] struct {
 	Description psql.WhereNullMod[Q, string]
 	CreatedAt   psql.WhereMod[Q, time.Time]
 	UpdatedAt   psql.WhereMod[Q, time.Time]
+	GroupInfo   psql.WhereNullMod[Q, types.JSON[dto.GroupInfoBox]]
 	R           groupWhereR[Q]
 }
 
@@ -720,6 +759,7 @@ func buildGroupWhere[Q psql.Filterable](cols groupColumns) groupWhere[Q] {
 		Description: psql.WhereNull[Q, string](cols.Description.Expression),
 		CreatedAt:   psql.Where[Q, time.Time](cols.CreatedAt.Expression),
 		UpdatedAt:   psql.Where[Q, time.Time](cols.UpdatedAt.Expression),
+		GroupInfo:   psql.WhereNull[Q, types.JSON[dto.GroupInfoBox]](cols.GroupInfo.Expression),
 		R:           groupWhereR[Q]{cols: cols},
 	}
 }
@@ -754,6 +794,7 @@ type groupPreloadBuf struct {
 	Description sql.Null[string]
 	CreatedAt   sql.Null[time.Time]
 	UpdatedAt   sql.Null[time.Time]
+	GroupInfo   sql.Null[types.JSON[dto.GroupInfoBox]]
 }
 
 // groupScanMapperNullable maps the preloaded group
@@ -768,7 +809,7 @@ func groupScanMapperNullable(prefix string) scan.Mapper[*Group] {
 			idx int
 			dst func(b *groupPreloadBuf) any
 		}
-		targets := make([]target, 0, 5)
+		targets := make([]target, 0, 6)
 		for i, col := range cols {
 			name, ok := strings.CutPrefix(col, prefix)
 			if !ok {
@@ -785,6 +826,8 @@ func groupScanMapperNullable(prefix string) scan.Mapper[*Group] {
 				targets = append(targets, target{i, func(b *groupPreloadBuf) any { return &b.CreatedAt }})
 			case "updated_at":
 				targets = append(targets, target{i, func(b *groupPreloadBuf) any { return &b.UpdatedAt }})
+			case "group_info":
+				targets = append(targets, target{i, func(b *groupPreloadBuf) any { return &b.GroupInfo }})
 			}
 		}
 
@@ -811,7 +854,8 @@ func groupScanMapperNullable(prefix string) scan.Mapper[*Group] {
 					!(buf.Name.Valid) &&
 					!(buf.Description.Valid) &&
 					!(buf.CreatedAt.Valid) &&
-					!(buf.UpdatedAt.Valid) {
+					!(buf.UpdatedAt.Valid) &&
+					!(buf.GroupInfo.Valid) {
 					return nil, nil
 				}
 
@@ -829,6 +873,7 @@ func groupScanMapperNullable(prefix string) scan.Mapper[*Group] {
 				if buf.UpdatedAt.Valid {
 					o.UpdatedAt = buf.UpdatedAt.V
 				}
+				o.GroupInfo = buf.GroupInfo
 				return o, nil
 			}
 	}

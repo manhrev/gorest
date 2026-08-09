@@ -57,7 +57,7 @@ func (s *Server) registerGroupRoutes(api huma.API, basePath string) {
 }
 
 func (s *Server) CreateGroup(ctx context.Context, input *dto.CreateGroupInput) (*response.Output[dto.GroupDTO], error) {
-	g, err := s.groupSvc.Create(ctx, input.Body.Name, input.Body.Description)
+	g, err := s.groupSvc.Create(ctx, input.Body.Name, input.Body.Description, input.Body.GroupInfo)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}
@@ -73,7 +73,7 @@ func (s *Server) GetGroup(ctx context.Context, input *dto.GetGroupInput) (*respo
 }
 
 func (s *Server) UpdateGroup(ctx context.Context, input *dto.UpdateGroupInput) (*response.Output[dto.GroupDTO], error) {
-	g, err := s.groupSvc.UpdateByID(ctx, input.ID, input.Body.Name, input.Body.Description)
+	g, err := s.groupSvc.UpdateByID(ctx, input.ID, input.Body.Name, input.Body.Description, input.Body.GroupInfo)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}
