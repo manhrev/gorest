@@ -1,0 +1,24 @@
+sql:
+   dialect: psql
+   driver: github.com/jackc/pgx/v5/stdlib
+   uuid_pkg: google
+   pattern: "migrations/*.sql"
+type_system: database/sql
+replacements:
+  - match:
+      db_type: "uuid"
+    replace: "string"
+plugins:
+  dbinfo:
+    destination: ./pkg/db/dbinfo
+  enums:
+    destination: ./pkg/db/enum
+    pkgname: enum
+  models:
+    destination: ./pkg/db/model
+    pkgname: model
+  factory:
+    disabled: true
+  dberrors:
+    destination: ./pkg/db/dberror
+    pkgname: dberror
