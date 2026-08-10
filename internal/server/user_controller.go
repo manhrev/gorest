@@ -6,6 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/manhrev/gorest/internal/code"
 	"github.com/manhrev/gorest/internal/dto"
 	"github.com/manhrev/gorest/pkg/dto/response"
 )
@@ -20,6 +21,49 @@ func (s *Server) registerUserRoutes(api huma.API, basePath string) {
 		Path:        basePath,
 		Summary:     "Create a user",
 		Tags:        []string{"Users"},
+		// Errors: 422 documents itself (huma appends 500 too, since this
+		// list is non-empty — see huma.Register). 409 is hand-built below
+		// instead of listed here so we can attach named examples per
+		// conflict cause, rather than huma's single generic ErrorModel
+		// response.
+		// Errors: []int{http.StatusUnprocessableEntity},
+		Responses: map[string]*huma.Response{
+			"409": {
+				Description: "Username or email already exists.",
+				Content: map[string]*huma.MediaType{
+					"application/json": {
+						Examples: map[string]*huma.Example{
+							"usernameExisted": {
+								Summary: "Username already exists",
+								Value: &response.ErrorOutput{
+									ErrorModel: &huma.ErrorModel{
+										Title:  "Conflict",
+										Status: http.StatusConflict,
+										Detail: "Username already exists.",
+										Errors: []*huma.ErrorDetail{
+											{Message: "Username already exists.", Location: "body.username", Value: code.UserUsernameExisted},
+										},
+									},
+								},
+							},
+							"emailExisted": {
+								Summary: "Email already exists",
+								Value: &response.ErrorOutput{
+									ErrorModel: &huma.ErrorModel{
+										Title:  "Conflict",
+										Status: http.StatusConflict,
+										Detail: "Email already exists.",
+										Errors: []*huma.ErrorDetail{
+											{Message: "Email already exists.", Location: "body.email", Value: code.UserEmailExisted},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}, s.CreateUser)
 
 	huma.Register(api, huma.Operation{
