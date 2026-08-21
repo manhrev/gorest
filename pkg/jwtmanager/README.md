@@ -3,9 +3,10 @@
 Ed25519-signed access/refresh JWTs via `golang-jwt/jwt/v5`.
 
 ```go
-svc, err := jwtmanager.New(jwtmanager.Config{
-    PrivateKeyFile:       "keys/ed25519.priv.pem",
-    PublicKeyFile:        "keys/ed25519.pub.pem",
+priv, err := jwtmanager.LoadPrivateKey("keys/ed25519.priv.pem")
+pub, err := jwtmanager.LoadPublicKey("keys/ed25519.pub.pem")
+
+svc, err := jwtmanager.New(priv, pub, jwtmanager.Config{
     AccessTokenDuration:  15 * time.Minute,
     RefreshTokenDuration: 7 * 24 * time.Hour,
     Issuer:               "gorest",

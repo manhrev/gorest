@@ -73,9 +73,17 @@ func (f *fakeStore) Delete(_ context.Context, jti string) error {
 func testAuthService(t *testing.T) *Service {
 	t.Helper()
 
-	jwtSvc, err := jwtmanager.New(jwtmanager.Config{
-		PrivateKeyFile:       "../jwtmanager/testdata/priv.pem",
-		PublicKeyFile:        "../jwtmanager/testdata/pub.pem",
+	priv, err := jwtmanager.LoadPrivateKey("../jwtmanager/testdata/priv.pem")
+	if err != nil {
+		t.Fatalf("LoadPrivateKey: %v", err)
+	}
+
+	pub, err := jwtmanager.LoadPublicKey("../jwtmanager/testdata/pub.pem")
+	if err != nil {
+		t.Fatalf("LoadPublicKey: %v", err)
+	}
+
+	jwtSvc, err := jwtmanager.New(priv, pub, jwtmanager.Config{
 		AccessTokenDuration:  time.Hour,
 		RefreshTokenDuration: 24 * time.Hour,
 		Issuer:               "authservice-test",

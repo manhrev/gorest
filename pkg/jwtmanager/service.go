@@ -18,15 +18,13 @@ type Service struct {
 	issuer               string
 }
 
-func New(cfg Config) (*Service, error) {
-	privateKey, err := LoadPrivateKey(cfg.PrivateKeyFile)
-	if err != nil {
-		return nil, err
+func New(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKey, cfg Config) (*Service, error) {
+	if len(privateKey) != ed25519.PrivateKeySize {
+		return nil, fmt.Errorf("jwtmanager: invalid private key length %d, want %d", len(privateKey), ed25519.PrivateKeySize)
 	}
 
-	publicKey, err := LoadPublicKey(cfg.PublicKeyFile)
-	if err != nil {
-		return nil, err
+	if len(publicKey) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("jwtmanager: invalid public key length %d, want %d", len(publicKey), ed25519.PublicKeySize)
 	}
 
 	return &Service{

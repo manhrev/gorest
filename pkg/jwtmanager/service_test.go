@@ -10,9 +10,17 @@ import (
 func testService(t *testing.T) *Service {
 	t.Helper()
 
-	s, err := New(Config{
-		PrivateKeyFile:       "testdata/priv.pem",
-		PublicKeyFile:        "testdata/pub.pem",
+	priv, err := LoadPrivateKey("testdata/priv.pem")
+	if err != nil {
+		t.Fatalf("LoadPrivateKey: %v", err)
+	}
+
+	pub, err := LoadPublicKey("testdata/pub.pem")
+	if err != nil {
+		t.Fatalf("LoadPublicKey: %v", err)
+	}
+
+	s, err := New(priv, pub, Config{
 		AccessTokenDuration:  time.Hour,
 		RefreshTokenDuration: 24 * time.Hour,
 		Issuer:               "gorest-test",
@@ -66,9 +74,17 @@ func TestRefreshTokenRejectedAsAccess(t *testing.T) {
 func TestWrongKeyRejected(t *testing.T) {
 	s := testService(t)
 
-	other, err := New(Config{
-		PrivateKeyFile:       "testdata/other_priv.pem",
-		PublicKeyFile:        "testdata/pub.pem", // mismatched pair
+	otherPriv, err := LoadPrivateKey("testdata/other_priv.pem")
+	if err != nil {
+		t.Fatalf("LoadPrivateKey: %v", err)
+	}
+
+	pub, err := LoadPublicKey("testdata/pub.pem") // mismatched pair
+	if err != nil {
+		t.Fatalf("LoadPublicKey: %v", err)
+	}
+
+	other, err := New(otherPriv, pub, Config{
 		AccessTokenDuration:  time.Hour,
 		RefreshTokenDuration: 24 * time.Hour,
 		Issuer:               "gorest-test",
