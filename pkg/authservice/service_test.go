@@ -68,6 +68,28 @@ func (f *fakeStore) Delete(_ context.Context, jti string) error {
 	return nil
 }
 
+type fakeBlocklist struct {
+	mu      sync.Mutex
+	blocked map[string]bool
+}
+
+func newFakeBlocklist() *fakeBlocklist { return &fakeBlocklist{blocked: map[string]bool{}} }
+
+func (f *fakeBlocklist) Block(_ context.Context, jti string, _ time.Time) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.blocked[jti] = true
+
+	return nil
+}
+
+func (f *fakeBlocklist) IsBlocked(_ context.Context, jti string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.blocked[jti], nil
+}
+
 // --- setup ---
 
 func testAuthService(t *testing.T) *Service {
@@ -95,7 +117,7 @@ func testAuthService(t *testing.T) *Service {
 	verifier := &fakeVerifier{users: map[string]string{"alice": "hunter2"}}
 	users := &fakeUserLookup{roles: map[string][]string{"user-alice": {"admin"}}}
 
-	return New(jwtSvc, verifier, users, newFakeStore())
+	return New(jwtSvc, verifier, users, newFakeStore(), newFakeBlocklist())
 }
 
 // --- tests ---
@@ -108,7 +130,7 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("Login: %v", err)
 	}
 
-	claims, err := s.ValidateAccessToken(access)
+	claims, err := s.ValidateAccessToken(context.Background(), access)
 	if err != nil {
 		t.Fatalf("ValidateAccessToken: %v", err)
 	}
@@ -148,7 +170,7 @@ func TestRefreshRotates(t *testing.T) {
 		t.Fatalf("Refresh: %v", err)
 	}
 
-	if _, err := s.ValidateAccessToken(access2); err != nil {
+	if _, err := s.ValidateAccessToken(ctx, access2); err != nil {
 		t.Fatalf("ValidateAccessToken(access2): %v", err)
 	}
 
@@ -203,5 +225,27 @@ func TestRefreshUnknownJTI(t *testing.T) {
 
 	if _, _, err := s.Refresh(ctx, refresh); err == nil {
 		t.Fatal("Refresh with revoked refresh token: expected error, got nil")
+	}
+}
+
+func TestRevokeAccessToken(t *testing.T) {
+	s := testAuthService(t)
+	ctx := context.Background()
+
+	access, _, err := s.Login(ctx, "alice", "hunter2")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	if _, err := s.ValidateAccessToken(ctx, access); err != nil {
+		t.Fatalf("ValidateAccessToken before revoke: %v", err)
+	}
+
+	if err := s.RevokeAccessToken(ctx, access); err != nil {
+		t.Fatalf("RevokeAccessToken: %v", err)
+	}
+
+	if _, err := s.ValidateAccessToken(ctx, access); err == nil {
+		t.Fatal("ValidateAccessToken after revoke: expected error, got nil")
 	}
 }

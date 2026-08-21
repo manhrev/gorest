@@ -29,15 +29,26 @@ type RefreshTokenStore interface {
 	Delete(ctx context.Context, jti string) error
 }
 
-type Service struct {
-	jwt      *jwtmanager.Service
-	verifier CredentialVerifier
-	users    UserLookup
-	store    RefreshTokenStore
+// AccessTokenBlocklist records revoked-but-not-yet-expired access tokens by
+// jti. Access tokens are otherwise stateless, this is the only way to kill
+// one before its exp.
+type AccessTokenBlocklist interface {
+	// Block marks jti revoked until expiresAt (store can drop it after,
+	// the token would be rejected on exp anyway).
+	Block(ctx context.Context, jti string, expiresAt time.Time) error
+	IsBlocked(ctx context.Context, jti string) (bool, error)
 }
 
-func New(jwt *jwtmanager.Service, verifier CredentialVerifier, users UserLookup, store RefreshTokenStore) *Service {
-	return &Service{jwt: jwt, verifier: verifier, users: users, store: store}
+type Service struct {
+	jwt       *jwtmanager.Service
+	verifier  CredentialVerifier
+	users     UserLookup
+	store     RefreshTokenStore
+	blocklist AccessTokenBlocklist
+}
+
+func New(jwt *jwtmanager.Service, verifier CredentialVerifier, users UserLookup, store RefreshTokenStore, blocklist AccessTokenBlocklist) *Service {
+	return &Service{jwt: jwt, verifier: verifier, users: users, store: store, blocklist: blocklist}
 }
 
 func (s *Service) Login(ctx context.Context, username, password string) (access, refresh string, err error) {
@@ -54,15 +65,41 @@ func (s *Service) Login(ctx context.Context, username, password string) (access,
 	return s.issue(ctx, userID, roles)
 }
 
-// ValidateAccessToken verifies an access token and returns its claims. Pure
-// check, no I/O, so no ctx.
-func (s *Service) ValidateAccessToken(token string) (*jwtmanager.Claims, error) {
+// ValidateAccessToken verifies an access token, returns its claims. Also
+// checks the blocklist, so a revoked token is rejected before its exp.
+func (s *Service) ValidateAccessToken(ctx context.Context, token string) (*jwtmanager.Claims, error) {
 	claims, err := s.jwt.Verify(token, jwtmanager.TokenTypeAccess)
 	if err != nil {
 		return nil, serviceerr.NewUnauthenticated(err).SetMessage("Invalid or expired access token.")
 	}
 
+	blocked, err := s.blocklist.IsBlocked(ctx, claims.ID)
+	if err != nil {
+		return nil, serviceerr.NewInternal(err)
+	}
+
+	if blocked {
+		return nil, serviceerr.NewUnauthenticated(fmt.Errorf("access token revoked")).
+			SetMessage("Access token has been revoked.")
+	}
+
 	return claims, nil
+}
+
+// RevokeAccessToken blocks an access token before its natural expiry (e.g.
+// on logout). Idempotent-ish: revoking an already-expired token just fails
+// Verify, nothing left to block.
+func (s *Service) RevokeAccessToken(ctx context.Context, token string) error {
+	claims, err := s.jwt.Verify(token, jwtmanager.TokenTypeAccess)
+	if err != nil {
+		return serviceerr.NewUnauthenticated(err).SetMessage("Invalid or expired access token.")
+	}
+
+	if err := s.blocklist.Block(ctx, claims.ID, claims.ExpiresAt.Time); err != nil {
+		return serviceerr.NewInternal(err)
+	}
+
+	return nil
 }
 
 // Refresh rotates a refresh token: the old jti is invalidated even if
