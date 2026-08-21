@@ -17,6 +17,7 @@ type App struct {
 	Tracing     Tracing
 	Minio       *Minio
 	RabbitMQ    *RabbitMQ
+	JWT         *JWT
 }
 
 type Postgres struct {
@@ -90,6 +91,14 @@ type RabbitMQ struct {
 	Port     int    `validate:"required,gt=0"`
 	User     string `validate:"required"`
 	Password string `validate:"required"`
+}
+
+type JWT struct {
+	PrivateKeyFile       string `validate:"required"`
+	PublicKeyFile        string `validate:"required"`
+	AccessTokenDuration  time.Duration
+	RefreshTokenDuration time.Duration
+	Issuer               string
 }
 
 type Cronjob struct {

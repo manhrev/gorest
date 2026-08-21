@@ -63,6 +63,13 @@ func Load() *Config {
 				MaxOpenConn:     10,
 				MaxIdleConn:     5,
 			},
+			JWT: &pkgconfig.JWT{
+				PrivateKeyFile:       envOr("JWT_PRIVATE_KEY_FILE", "pkg/jwtmanager/testdata/priv.pem"),
+				PublicKeyFile:        envOr("JWT_PUBLIC_KEY_FILE", "pkg/jwtmanager/testdata/pub.pem"),
+				AccessTokenDuration:  envDurationOr("JWT_ACCESS_TOKEN_DURATION", 15*time.Minute),
+				RefreshTokenDuration: envDurationOr("JWT_REFRESH_TOKEN_DURATION", 7*24*time.Hour),
+				Issuer:               envOr("JWT_ISSUER", "gorest"),
+			},
 		},
 		ShutdownTimeout: envDurationOr("SHUTDOWN_TIMEOUT", 5*time.Second),
 		AllowedOrigins:  envSliceOr("CORS_ALLOWED_ORIGINS", []string{"*"}),

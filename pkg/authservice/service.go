@@ -102,6 +102,22 @@ func (s *Service) RevokeAccessToken(ctx context.Context, token string) error {
 	return nil
 }
 
+// RevokeRefreshToken invalidates a refresh token before it's used (e.g.
+// logout). No-op-ish on an already-used/unknown jti: store.Delete on a
+// missing key isn't an error.
+func (s *Service) RevokeRefreshToken(ctx context.Context, refreshToken string) error {
+	claims, err := s.jwt.Verify(refreshToken, jwtmanager.TokenTypeRefresh)
+	if err != nil {
+		return serviceerr.NewUnauthenticated(err).SetMessage("Invalid or expired refresh token.")
+	}
+
+	if err := s.store.Delete(ctx, claims.ID); err != nil {
+		return serviceerr.NewInternal(err)
+	}
+
+	return nil
+}
+
 // Refresh rotates a refresh token: the old jti is invalidated even if
 // issuing the replacement fails partway, so a token can never be reused.
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (access, refresh string, err error) {

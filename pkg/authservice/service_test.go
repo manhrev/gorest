@@ -228,6 +228,24 @@ func TestRefreshUnknownJTI(t *testing.T) {
 	}
 }
 
+func TestRevokeRefreshToken(t *testing.T) {
+	s := testAuthService(t)
+	ctx := context.Background()
+
+	_, refresh, err := s.Login(ctx, "alice", "hunter2")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	if err := s.RevokeRefreshToken(ctx, refresh); err != nil {
+		t.Fatalf("RevokeRefreshToken: %v", err)
+	}
+
+	if _, _, err := s.Refresh(ctx, refresh); err == nil {
+		t.Fatal("Refresh with revoked refresh token: expected error, got nil")
+	}
+}
+
 func TestRevokeAccessToken(t *testing.T) {
 	s := testAuthService(t)
 	ctx := context.Background()
