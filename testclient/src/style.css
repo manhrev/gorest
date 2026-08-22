@@ -74,6 +74,24 @@ pre {
   text-transform: uppercase;
   color: #666;
 }
+table.params {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-family: monospace;
+  margin: -0.3rem 0 0.6rem;
+}
+table.params td {
+  padding: 0.15rem 0.5rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+  word-break: break-all;
+}
+table.params .param-key {
+  color: #555;
+  white-space: nowrap;
+  width: 1%;
+}
 .hint {
   color: #777;
   font-size: 0.9rem;

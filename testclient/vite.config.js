@@ -8,5 +8,15 @@ import react from "@vitejs/plugin-react";
 // with no obvious reason why.
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, strictPort: true },
+  server: {
+    port: 5173,
+    strictPort: true,
+    // Needed for OAuthPage's fetch(...) to follow the 302 from
+    // /oauth/authorize back to /callback: once a fetch starts
+    // cross-origin, every hop of its redirect chain is CORS-checked —
+    // even the final one landing back on this app's own origin. Without
+    // this, Vite's dev server sends no Access-Control-Allow-Origin on its
+    // own responses and the browser blocks that last hop.
+    cors: true,
+  },
 });
