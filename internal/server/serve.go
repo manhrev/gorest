@@ -95,11 +95,13 @@ func Run(ctx context.Context) error {
 		groupservice.New(groupRepo),
 		authSvc,
 		oauthserver.New(authSvc, newStubClientStore(), newMemCodeStore(), newMemConsentStore()),
+		jwtSvc,
 	)
 	srv.registerUserRoutes(api, "/users")
 	srv.registerGroupRoutes(api, "/groups")
 	srv.registerAuthRoutes(api, "/auth")
 	srv.registerOAuthRoutes(api, "/oauth")
+	srv.registerJWKSRoute(api)
 
 	handler := middleware.CORS(cfg.AllowedOrigins)(
 		middleware.Metadata(cfg.App.Version)(

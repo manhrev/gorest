@@ -6,6 +6,7 @@ import (
 	groupservice "github.com/manhrev/gorest/internal/service/group"
 	userservice "github.com/manhrev/gorest/internal/service/user"
 	"github.com/manhrev/gorest/pkg/authservice"
+	"github.com/manhrev/gorest/pkg/jwtmanager"
 	"github.com/manhrev/gorest/pkg/oauthserver"
 )
 
@@ -17,8 +18,9 @@ type Server struct {
 	groupSvc *groupservice.Service
 	authSvc  *authservice.Service
 	oauthSvc *oauthserver.Service
+	jwtSvc   *jwtmanager.Service
 }
 
-func NewServer(userSvc *userservice.Service, groupSvc *groupservice.Service, authSvc *authservice.Service, oauthSvc *oauthserver.Service) *Server {
-	return &Server{userSvc: userSvc, groupSvc: groupSvc, authSvc: authSvc, oauthSvc: oauthSvc}
+func NewServer(userSvc *userservice.Service, groupSvc *groupservice.Service, authSvc *authservice.Service, oauthSvc *oauthserver.Service, jwtSvc *jwtmanager.Service) *Server {
+	return &Server{userSvc: userSvc, groupSvc: groupSvc, authSvc: authSvc, oauthSvc: oauthSvc, jwtSvc: jwtSvc}
 }
