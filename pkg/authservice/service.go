@@ -65,12 +65,12 @@ func (s *Service) Login(ctx context.Context, username, password string) (access,
 	return s.issue(ctx, userID, roles)
 }
 
-// IssueForUser issues a fresh access+refresh pair for userID with explicit
-// roles, bypassing CredentialVerifier/UserLookup — for flows (like OAuth
-// authorization-code exchange) that already know who the user is and what
-// they're allowed, without re-deriving it.
-func (s *Service) IssueForUser(ctx context.Context, userID string, roles []string) (access, refresh string, err error) {
-	return s.issue(ctx, userID, roles)
+// IssueForClient issues a delegated access+refresh pair for an OAuth client
+// acting on userID's behalf — the access token carries clientID+scope (RFC
+// 9068), not the user's own roles, so it authorizes only what was granted
+// (see jwtmanager.Claims.Permissions), never everything the user can do.
+func (s *Service) IssueForClient(ctx context.Context, userID, clientID, scope string) (access, refresh string, err error) {
+	return s.issue(ctx, userID, nil, jwtmanager.WithDelegation(clientID, scope))
 }
 
 // ValidateAccessToken verifies an access token, returns its claims. Also
@@ -158,8 +158,8 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (access, ref
 
 // issue generates a fresh access+refresh pair and records the refresh
 // token's jti in the store.
-func (s *Service) issue(ctx context.Context, userID string, roles []string) (access, refresh string, err error) {
-	access, err = s.jwt.GenerateAccessToken(userID, roles)
+func (s *Service) issue(ctx context.Context, userID string, roles []string, opts ...jwtmanager.ClaimOption) (access, refresh string, err error) {
+	access, err = s.jwt.GenerateAccessToken(userID, roles, opts...)
 	if err != nil {
 		return "", "", serviceerr.NewInternal(err)
 	}
