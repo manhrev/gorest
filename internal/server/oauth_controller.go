@@ -15,9 +15,9 @@ import (
 
 // registerOAuthRoutes registers the OAuth2 authorization-code endpoints
 // relative to basePath (e.g. "/oauth"). See pkg/oauthserver's package doc
-// and dto.OAuthAuthorizeInput for the scope this deliberately covers (no
-// PKCE, no consent screen UI — only the API a frontend consent screen would
-// call, no real browser redirect).
+// and dto.OAuthAuthorizeInput for the scope this deliberately covers
+// (mandatory PKCE, no consent screen UI — only the API a frontend consent
+// screen would call, no real browser redirect).
 func (s *Server) registerOAuthRoutes(api huma.API, basePath string) {
 	huma.Register(api, huma.Operation{
 		OperationID: "oauth-authorize",
@@ -69,7 +69,7 @@ func (s *Server) OAuthAuthorize(ctx context.Context, input *dto.OAuthAuthorizeIn
 			SetMessage("A delegated access token cannot be used to authorize another client."))
 	}
 
-	result, err := s.oauthSvc.Authorize(ctx, input.ClientID, input.RedirectURI, input.Scope, input.State, claims.Subject)
+	result, err := s.oauthSvc.Authorize(ctx, input.ClientID, input.RedirectURI, input.Scope, input.State, claims.Subject, input.CodeChallenge, input.CodeChallengeMethod)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}
@@ -112,7 +112,7 @@ func (s *Server) OAuthToken(ctx context.Context, input *dto.OAuthTokenInput) (*d
 			SetMessage(`grant_type must be "authorization_code".`))
 	}
 
-	access, refresh, err := s.oauthSvc.Exchange(ctx, input.Body.ClientID, input.Body.ClientSecret, input.Body.Code, input.Body.RedirectURI)
+	access, refresh, err := s.oauthSvc.Exchange(ctx, input.Body.ClientID, input.Body.ClientSecret, input.Body.Code, input.Body.RedirectURI, input.Body.CodeVerifier)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
 	}

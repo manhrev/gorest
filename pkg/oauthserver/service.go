@@ -51,11 +51,12 @@ type ClientStore interface {
 // AuthorizationCode is what AuthorizationCodeStore persists between
 // Authorize (issues it) and Exchange (consumes it).
 type AuthorizationCode struct {
-	ClientID    string
-	UserID      string
-	RedirectURI string
-	Scope       string
-	ExpiresAt   time.Time
+	ClientID      string
+	UserID        string
+	RedirectURI   string
+	Scope         string
+	CodeChallenge string // RFC 7636, S256 method only
+	ExpiresAt     time.Time
 }
 
 // AuthorizationCodeStore holds short-lived, single-use authorization codes.
@@ -69,12 +70,13 @@ type AuthorizationCodeStore interface {
 // ConsentTicket is what ConsentStore persists between Authorize (issues it,
 // for a RequireConsent client) and Decide (consumes it).
 type ConsentTicket struct {
-	ClientID    string
-	UserID      string
-	RedirectURI string
-	Scope       string
-	State       string
-	ExpiresAt   time.Time
+	ClientID      string
+	UserID        string
+	RedirectURI   string
+	Scope         string
+	State         string
+	CodeChallenge string // RFC 7636, S256 method only — carried through to grant on approve
+	ExpiresAt     time.Time
 }
 
 // ConsentStore holds short-lived, single-use pending consent decisions.
@@ -105,8 +107,10 @@ func New(auth *authservice.Service, clients ClientStore, codes AuthorizationCode
 	return &Service{auth: auth, clients: clients, codes: codes, consents: consents}
 }
 
-// Authorize validates client_id/redirect_uri/scope for an already-
-// authenticated user (userID from a prior ValidateAccessToken call). For a
+// Authorize validates client_id/redirect_uri/scope/PKCE for an already-
+// authenticated user (userID from a prior ValidateAccessToken call).
+// code_challenge_method must be "S256" — PKCE is mandatory on every call,
+// not just for public clients (see RFC 7636, OAuth 2.1 guidance). For a
 // client with RequireConsent false, this grants immediately (same as
 // before consent existed) and returns a redirect URL carrying a fresh
 // authorization code + state. For a RequireConsent client, it instead
@@ -123,7 +127,7 @@ func New(auth *authservice.Service, clients ClientStore, codes AuthorizationCode
 // that token (a script/fetch call), not a real browser top-level redirect
 // (which can't carry a custom header) — see the controller for the full
 // caveat.
-func (s *Service) Authorize(ctx context.Context, clientID, redirectURI, scope, state, userID string) (AuthorizeResult, error) {
+func (s *Service) Authorize(ctx context.Context, clientID, redirectURI, scope, state, userID, codeChallenge, codeChallengeMethod string) (AuthorizeResult, error) {
 	client, err := s.clients.Get(ctx, clientID)
 	if err != nil {
 		return AuthorizeResult{}, serviceerr.NewInvalidArgument(err).SetMessage("Unknown client_id.")
@@ -144,8 +148,15 @@ func (s *Service) Authorize(ctx context.Context, clientID, redirectURI, scope, s
 		}
 	}
 
+	if codeChallengeMethod != "S256" || codeChallenge == "" {
+		// "plain" is a valid RFC 7636 method (for clients that can't hash)
+		// but meaningfully weaker, and out of scope here — S256 only.
+		return AuthorizeResult{}, serviceerr.NewInvalidArgument(fmt.Errorf("code_challenge_method must be S256")).
+			SetMessage(`code_challenge (with code_challenge_method=S256) is required.`)
+	}
+
 	if !client.RequireConsent {
-		redirectURL, err := s.grant(ctx, clientID, redirectURI, scope, state, userID)
+		redirectURL, err := s.grant(ctx, clientID, redirectURI, scope, state, userID, codeChallenge)
 		if err != nil {
 			return AuthorizeResult{}, err
 		}
@@ -159,12 +170,13 @@ func (s *Service) Authorize(ctx context.Context, clientID, redirectURI, scope, s
 	}
 
 	if err := s.consents.Save(ctx, consentID, ConsentTicket{
-		ClientID:    clientID,
-		UserID:      userID,
-		RedirectURI: redirectURI,
-		Scope:       scope,
-		State:       state,
-		ExpiresAt:   time.Now().Add(consentTTL),
+		ClientID:      clientID,
+		UserID:        userID,
+		RedirectURI:   redirectURI,
+		Scope:         scope,
+		State:         state,
+		CodeChallenge: codeChallenge,
+		ExpiresAt:     time.Now().Add(consentTTL),
 	}); err != nil {
 		return AuthorizeResult{}, serviceerr.NewInternal(err)
 	}
@@ -199,24 +211,25 @@ func (s *Service) Decide(ctx context.Context, consentID string, approve bool, us
 		return ticket.RedirectURI + "?error=access_denied&state=" + ticket.State, nil
 	}
 
-	return s.grant(ctx, ticket.ClientID, ticket.RedirectURI, ticket.Scope, ticket.State, ticket.UserID)
+	return s.grant(ctx, ticket.ClientID, ticket.RedirectURI, ticket.Scope, ticket.State, ticket.UserID, ticket.CodeChallenge)
 }
 
 // grant issues a fresh authorization code and returns the redirect URL
 // carrying it + state — the actual "authorization succeeded" step, shared
 // by the no-consent-needed path and Decide's approve path.
-func (s *Service) grant(ctx context.Context, clientID, redirectURI, scope, state, userID string) (redirectURL string, err error) {
+func (s *Service) grant(ctx context.Context, clientID, redirectURI, scope, state, userID, codeChallenge string) (redirectURL string, err error) {
 	code, err := newCode()
 	if err != nil {
 		return "", serviceerr.NewInternal(err)
 	}
 
 	if err := s.codes.Save(ctx, code, AuthorizationCode{
-		ClientID:    clientID,
-		UserID:      userID,
-		RedirectURI: redirectURI,
-		Scope:       scope,
-		ExpiresAt:   time.Now().Add(codeTTL),
+		ClientID:      clientID,
+		UserID:        userID,
+		RedirectURI:   redirectURI,
+		Scope:         scope,
+		CodeChallenge: codeChallenge,
+		ExpiresAt:     time.Now().Add(codeTTL),
 	}); err != nil {
 		return "", serviceerr.NewInternal(err)
 	}
@@ -224,9 +237,10 @@ func (s *Service) grant(ctx context.Context, clientID, redirectURI, scope, state
 	return redirectURI + "?code=" + code + "&state=" + state, nil
 }
 
-// Exchange validates client credentials + the code, consumes it (single
-// use), and issues an access+refresh pair for the code's user.
-func (s *Service) Exchange(ctx context.Context, clientID, clientSecret, code, redirectURI string) (access, refresh string, err error) {
+// Exchange validates client credentials + the code + PKCE code_verifier,
+// consumes the code (single use), and issues an access+refresh pair for
+// the code's user.
+func (s *Service) Exchange(ctx context.Context, clientID, clientSecret, code, redirectURI, codeVerifier string) (access, refresh string, err error) {
 	client, err := s.clients.Get(ctx, clientID)
 	if err != nil || client.Secret != clientSecret {
 		return "", "", serviceerr.NewUnauthenticated(fmt.Errorf("invalid client credentials")).
@@ -247,6 +261,13 @@ func (s *Service) Exchange(ctx context.Context, clientID, clientSecret, code, re
 	if time.Now().After(ac.ExpiresAt) {
 		return "", "", serviceerr.NewUnauthenticated(fmt.Errorf("authorization code expired")).
 			SetMessage("Authorization code expired.")
+	}
+
+	if S256Challenge(codeVerifier) != ac.CodeChallenge {
+		// Same bucket as a bad client_secret — both mean "you're not the
+		// party this code/request was issued to."
+		return "", "", serviceerr.NewUnauthenticated(fmt.Errorf("code_verifier does not match code_challenge")).
+			SetMessage("Invalid code_verifier.")
 	}
 
 	return s.auth.IssueForClient(ctx, ac.UserID, ac.ClientID, ac.Scope)

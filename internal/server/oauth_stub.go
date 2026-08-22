@@ -24,14 +24,14 @@ func newStubClientStore() *stubClientStore {
 		"internal-service": {
 			ID:           "internal-service",
 			Secret:       "dev-secret",
-			RedirectURIs: []string{"http://localhost:9090/callback"},
+			RedirectURIs: []string{"http://localhost:9090/callback", "http://localhost:5173/callback"},
 			Scopes:       []string{"read:user_password", "read:user_email"},
 			// first-party trusted, auto-approved (RequireConsent false).
 		},
 		"partner-app": {
 			ID:             "partner-app",
 			Secret:         "dev-secret",
-			RedirectURIs:   []string{"http://localhost:9091/callback"},
+			RedirectURIs:   []string{"http://localhost:9091/callback", "http://localhost:5173/callback"},
 			Scopes:         []string{"read:user_password", "read:user_email"},
 			RequireConsent: true,
 		},

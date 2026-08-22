@@ -10,12 +10,14 @@ package dto
 // call), not an <a href>/window.location navigation. See pkg/oauthserver's
 // package doc for the full tradeoff.
 type OAuthAuthorizeInput struct {
-	Authorization string `header:"Authorization" doc:"Bearer access token of the already-logged-in user"`
-	ClientID      string `query:"client_id"`
-	RedirectURI   string `query:"redirect_uri"`
-	ResponseType  string `query:"response_type" doc:"Must be \"code\""`
-	Scope         string `query:"scope,omitempty"`
-	State         string `query:"state,omitempty"`
+	Authorization       string `header:"Authorization" doc:"Bearer access token of the already-logged-in user"`
+	ClientID            string `query:"client_id"`
+	RedirectURI         string `query:"redirect_uri"`
+	ResponseType        string `query:"response_type" doc:"Must be \"code\""`
+	Scope               string `query:"scope,omitempty"`
+	State               string `query:"state,omitempty"`
+	CodeChallenge       string `query:"code_challenge" doc:"RFC 7636 PKCE challenge, required"`
+	CodeChallengeMethod string `query:"code_challenge_method" doc:"Must be \"S256\""`
 }
 
 // OAuthAuthorizeOutput is either a redirect (302, Location set, Body zero
@@ -25,7 +27,7 @@ type OAuthAuthorizeInput struct {
 // POST .../decision with Body.ConsentID.
 type OAuthAuthorizeOutput struct {
 	Status   int    `json:"-"`
-	Location string `header:"Location,omitempty"`
+	Location string `header:"Location"` // huma omits an empty header value automatically, no ",omitempty" modifier support on this tag
 	Body     struct {
 		ConsentRequired bool   `json:"consentRequired"`
 		ConsentID       string `json:"consentId,omitempty"`
@@ -62,6 +64,7 @@ type OAuthTokenInput struct {
 		RedirectURI  string `json:"redirect_uri"`
 		ClientID     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
+		CodeVerifier string `json:"code_verifier" doc:"RFC 7636 PKCE verifier, required"`
 	}
 }
 
