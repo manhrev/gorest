@@ -6,6 +6,7 @@ import (
 	groupservice "github.com/manhrev/gorest/internal/service/group"
 	userservice "github.com/manhrev/gorest/internal/service/user"
 	"github.com/manhrev/gorest/pkg/authservice"
+	"github.com/manhrev/gorest/pkg/oauthserver"
 )
 
 // Server holds the app's dependencies and exposes them as huma operation
@@ -15,8 +16,9 @@ type Server struct {
 	userSvc  *userservice.Service
 	groupSvc *groupservice.Service
 	authSvc  *authservice.Service
+	oauthSvc *oauthserver.Service
 }
 
-func NewServer(userSvc *userservice.Service, groupSvc *groupservice.Service, authSvc *authservice.Service) *Server {
-	return &Server{userSvc: userSvc, groupSvc: groupSvc, authSvc: authSvc}
+func NewServer(userSvc *userservice.Service, groupSvc *groupservice.Service, authSvc *authservice.Service, oauthSvc *oauthserver.Service) *Server {
+	return &Server{userSvc: userSvc, groupSvc: groupSvc, authSvc: authSvc, oauthSvc: oauthSvc}
 }

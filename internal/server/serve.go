@@ -17,6 +17,7 @@ import (
 	userservice "github.com/manhrev/gorest/internal/service/user"
 	"github.com/manhrev/gorest/pkg/authservice"
 	"github.com/manhrev/gorest/pkg/jwtmanager"
+	"github.com/manhrev/gorest/pkg/oauthserver"
 	applog "github.com/manhrev/gorest/pkg/log"
 	"github.com/manhrev/gorest/pkg/middleware"
 	"github.com/manhrev/gorest/pkg/postgres"
@@ -88,14 +89,17 @@ func Run(ctx context.Context) error {
 	}
 
 	groupRepo := grouprepo.New(pgPool)
+	authSvc := authservice.New(jwtSvc, newStubVerifier(), newStubUserLookup(), newMemRefreshStore(), newMemBlocklist())
 	srv := NewServer(
 		userservice.New(userrepo.New(pgPool), groupRepo, txrunner.New(pgPool)),
 		groupservice.New(groupRepo),
-		authservice.New(jwtSvc, newStubVerifier(), newStubUserLookup(), newMemRefreshStore(), newMemBlocklist()),
+		authSvc,
+		oauthserver.New(authSvc, newStubClientStore(), newMemCodeStore()),
 	)
 	srv.registerUserRoutes(api, "/users")
 	srv.registerGroupRoutes(api, "/groups")
 	srv.registerAuthRoutes(api, "/auth")
+	srv.registerOAuthRoutes(api, "/oauth")
 
 	handler := middleware.CORS(cfg.AllowedOrigins)(
 		middleware.Metadata(cfg.App.Version)(
