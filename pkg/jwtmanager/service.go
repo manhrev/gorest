@@ -56,6 +56,18 @@ func WithMetadata(metadata map[string]string) ClaimOption {
 	return func(c *Claims) { c.Metadata = metadata }
 }
 
+// WithDelegation marks the token as issued to an OAuth client acting on the
+// subject's behalf (RFC 9068 client_id + scope claims), replacing any roles
+// passed to GenerateAccessToken — a delegated token is authorized by Scope,
+// never by the user's own Roles. See Claims.Permissions.
+func WithDelegation(clientID, scope string) ClaimOption {
+	return func(c *Claims) {
+		c.ClientID = clientID
+		c.Scope = scope
+		c.Roles = nil
+	}
+}
+
 func (s *Service) generate(subject string, roles []string, tokenType string, duration time.Duration, opts ...ClaimOption) (string, error) {
 	now := time.Now()
 
