@@ -113,9 +113,42 @@ func (f *fakeCodeStore) Consume(_ context.Context, code string) (AuthorizationCo
 	return ac, nil
 }
 
+type fakeConsentStore struct {
+	mu      sync.Mutex
+	tickets map[string]ConsentTicket
+}
+
+func newFakeConsentStore() *fakeConsentStore {
+	return &fakeConsentStore{tickets: map[string]ConsentTicket{}}
+}
+
+func (f *fakeConsentStore) Save(_ context.Context, consentID string, t ConsentTicket) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.tickets[consentID] = t
+
+	return nil
+}
+
+func (f *fakeConsentStore) Consume(_ context.Context, consentID string) (ConsentTicket, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	t, ok := f.tickets[consentID]
+	if !ok {
+		return ConsentTicket{}, errors.New("unknown or already-decided consent")
+	}
+	delete(f.tickets, consentID)
+
+	return t, nil
+}
+
 // --- setup ---
 
-const testRedirectURI = "http://localhost:9090/callback"
+const (
+	testRedirectURI        = "http://localhost:9090/callback"
+	testPartnerRedirectURI = "http://localhost:9091/callback"
+)
 
 func testService(t *testing.T) *Service {
 	t.Helper()
@@ -148,9 +181,16 @@ func testService(t *testing.T) *Service {
 			RedirectURIs: []string{testRedirectURI},
 			Scopes:       []string{"read:resource"},
 		},
+		"partner-app": {
+			ID:             "partner-app",
+			Secret:         "partner-secret",
+			RedirectURIs:   []string{testPartnerRedirectURI},
+			Scopes:         []string{"read:resource"},
+			RequireConsent: true,
+		},
 	}}
 
-	return New(authSvc, clients, newFakeCodeStore())
+	return New(authSvc, clients, newFakeCodeStore(), newFakeConsentStore())
 }
 
 // extractCode pulls the "code" query param out of a "url?code=...&state=..."
@@ -177,12 +217,12 @@ func TestAuthorizeExchangeRoundtrip(t *testing.T) {
 	s := testService(t)
 	ctx := context.Background()
 
-	redirectURL, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
+	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
 
-	code := extractCode(t, redirectURL)
+	code := extractCode(t, result.RedirectURL)
 
 	access, refresh, err := s.Exchange(ctx, "internal-service", "dev-secret", code, testRedirectURI)
 	if err != nil {
@@ -222,12 +262,12 @@ func TestExchangeRejectsReusedCode(t *testing.T) {
 	s := testService(t)
 	ctx := context.Background()
 
-	redirectURL, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
+	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
 
-	code := extractCode(t, redirectURL)
+	code := extractCode(t, result.RedirectURL)
 
 	if _, _, err := s.Exchange(ctx, "internal-service", "dev-secret", code, testRedirectURI); err != nil {
 		t.Fatalf("first Exchange: %v", err)
@@ -242,12 +282,12 @@ func TestExchangeRejectsWrongSecret(t *testing.T) {
 	s := testService(t)
 	ctx := context.Background()
 
-	redirectURL, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
+	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
 
-	code := extractCode(t, redirectURL)
+	code := extractCode(t, result.RedirectURL)
 
 	if _, _, err := s.Exchange(ctx, "internal-service", "wrong-secret", code, testRedirectURI); err == nil {
 		t.Fatal("Exchange with wrong secret: expected error, got nil")
@@ -258,12 +298,12 @@ func TestExchangeRejectsRedirectURIMismatch(t *testing.T) {
 	s := testService(t)
 	ctx := context.Background()
 
-	redirectURL, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
+	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice")
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
 
-	code := extractCode(t, redirectURL)
+	code := extractCode(t, result.RedirectURL)
 
 	if _, _, err := s.Exchange(ctx, "internal-service", "dev-secret", code, "http://evil.example/callback"); err == nil {
 		t.Fatal("Exchange with mismatched redirect_uri: expected error, got nil")
@@ -315,5 +355,108 @@ func TestAuthorizeRejectsDisallowedScope(t *testing.T) {
 
 	if _, err := s.Authorize(ctx, "internal-service", testRedirectURI, "write:resource", "xyz", "user-alice"); err == nil {
 		t.Fatal("Authorize with disallowed scope: expected error, got nil")
+	}
+}
+
+func TestAuthorizeRequiresConsentForFlaggedClient(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+
+	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice")
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+
+	if !result.ConsentRequired {
+		t.Fatal("ConsentRequired = false, want true for a RequireConsent client")
+	}
+
+	if result.ConsentID == "" {
+		t.Fatal("ConsentID is empty")
+	}
+
+	if result.RedirectURL != "" {
+		t.Errorf("RedirectURL = %q, want empty when consent is pending", result.RedirectURL)
+	}
+}
+
+func TestDecideApprove(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+
+	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice")
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+
+	redirectURL, err := s.Decide(ctx, result.ConsentID, true, "user-alice")
+	if err != nil {
+		t.Fatalf("Decide: %v", err)
+	}
+
+	code := extractCode(t, redirectURL)
+
+	if _, _, err := s.Exchange(ctx, "partner-app", "partner-secret", code, testPartnerRedirectURI); err != nil {
+		t.Fatalf("Exchange: %v", err)
+	}
+}
+
+func TestDecideDeny(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+
+	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice")
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+
+	redirectURL, err := s.Decide(ctx, result.ConsentID, false, "user-alice")
+	if err != nil {
+		t.Fatalf("Decide: %v", err)
+	}
+
+	u, err := url.Parse(redirectURL)
+	if err != nil {
+		t.Fatalf("parse redirect URL: %v", err)
+	}
+
+	if got := u.Query().Get("error"); got != "access_denied" {
+		t.Errorf("error = %q, want access_denied", got)
+	}
+
+	if u.Query().Get("code") != "" {
+		t.Error("denied decision must not carry a code")
+	}
+}
+
+func TestDecideRejectsWrongUser(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+
+	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice")
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+
+	if _, err := s.Decide(ctx, result.ConsentID, true, "user-bob"); err == nil {
+		t.Fatal("Decide by a different user: expected error, got nil")
+	}
+}
+
+func TestDecideRejectsReusedConsent(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+
+	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice")
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+
+	if _, err := s.Decide(ctx, result.ConsentID, true, "user-alice"); err != nil {
+		t.Fatalf("first Decide: %v", err)
+	}
+
+	if _, err := s.Decide(ctx, result.ConsentID, true, "user-alice"); err == nil {
+		t.Fatal("second Decide with reused consentID: expected error, got nil")
 	}
 }

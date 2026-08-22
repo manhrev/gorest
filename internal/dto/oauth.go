@@ -18,8 +18,37 @@ type OAuthAuthorizeInput struct {
 	State         string `query:"state,omitempty"`
 }
 
-// OAuthAuthorizeOutput is a redirect (302) to redirect_uri?code=...&state=...
+// OAuthAuthorizeOutput is either a redirect (302, Location set, Body zero
+// value — ignore it) to redirect_uri?code=...&state=..., or, for a
+// RequireConsent client, a 200 describing the pending request (Location
+// empty) — the caller then collects an approve/deny decision and calls
+// POST .../decision with Body.ConsentID.
 type OAuthAuthorizeOutput struct {
+	Status   int    `json:"-"`
+	Location string `header:"Location,omitempty"`
+	Body     struct {
+		ConsentRequired bool   `json:"consentRequired"`
+		ConsentID       string `json:"consentId,omitempty"`
+		ClientID        string `json:"clientId,omitempty"`
+		Scope           string `json:"scope,omitempty"`
+	}
+}
+
+// OAuthDecisionInput represents the consent decision operation request —
+// not part of RFC 6749 itself (consent screens are left to implementations),
+// this is this server's own API for collecting one.
+type OAuthDecisionInput struct {
+	Authorization string `header:"Authorization" doc:"Bearer access token of the user deciding"`
+	Body          struct {
+		ConsentID string `json:"consentId"`
+		Approve   bool   `json:"approve"`
+	}
+}
+
+// OAuthDecisionOutput is always a redirect: to redirect_uri?code=...&state=...
+// on approve, or redirect_uri?error=access_denied&state=... on deny (RFC
+// 6749 §4.1.2.1).
+type OAuthDecisionOutput struct {
 	Status   int    `json:"-"`
 	Location string `header:"Location"`
 }

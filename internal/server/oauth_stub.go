@@ -26,6 +26,14 @@ func newStubClientStore() *stubClientStore {
 			Secret:       "dev-secret",
 			RedirectURIs: []string{"http://localhost:9090/callback"},
 			Scopes:       []string{"read:user_password", "read:user_email"},
+			// first-party trusted, auto-approved (RequireConsent false).
+		},
+		"partner-app": {
+			ID:             "partner-app",
+			Secret:         "dev-secret",
+			RedirectURIs:   []string{"http://localhost:9091/callback"},
+			Scopes:         []string{"read:user_password", "read:user_email"},
+			RequireConsent: true,
 		},
 	}}
 }
@@ -67,4 +75,34 @@ func (s *memCodeStore) Consume(_ context.Context, code string) (oauthserver.Auth
 	delete(s.codes, code)
 
 	return ac, nil
+}
+
+type memConsentStore struct {
+	mu      sync.Mutex
+	tickets map[string]oauthserver.ConsentTicket
+}
+
+func newMemConsentStore() *memConsentStore {
+	return &memConsentStore{tickets: map[string]oauthserver.ConsentTicket{}}
+}
+
+func (s *memConsentStore) Save(_ context.Context, consentID string, t oauthserver.ConsentTicket) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.tickets[consentID] = t
+
+	return nil
+}
+
+func (s *memConsentStore) Consume(_ context.Context, consentID string) (oauthserver.ConsentTicket, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	t, ok := s.tickets[consentID]
+	if !ok {
+		return oauthserver.ConsentTicket{}, errors.New("unknown or already-decided consent")
+	}
+	delete(s.tickets, consentID)
+
+	return t, nil
 }

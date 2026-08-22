@@ -17,9 +17,9 @@ import (
 	userservice "github.com/manhrev/gorest/internal/service/user"
 	"github.com/manhrev/gorest/pkg/authservice"
 	"github.com/manhrev/gorest/pkg/jwtmanager"
-	"github.com/manhrev/gorest/pkg/oauthserver"
 	applog "github.com/manhrev/gorest/pkg/log"
 	"github.com/manhrev/gorest/pkg/middleware"
+	"github.com/manhrev/gorest/pkg/oauthserver"
 	"github.com/manhrev/gorest/pkg/postgres"
 	"github.com/manhrev/gorest/pkg/tracing"
 	"github.com/manhrev/gorest/pkg/txrunner"
@@ -94,7 +94,7 @@ func Run(ctx context.Context) error {
 		userservice.New(userrepo.New(pgPool), groupRepo, txrunner.New(pgPool)),
 		groupservice.New(groupRepo),
 		authSvc,
-		oauthserver.New(authSvc, newStubClientStore(), newMemCodeStore()),
+		oauthserver.New(authSvc, newStubClientStore(), newMemCodeStore(), newMemConsentStore()),
 	)
 	srv.registerUserRoutes(api, "/users")
 	srv.registerGroupRoutes(api, "/groups")
