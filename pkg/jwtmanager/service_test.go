@@ -58,6 +58,59 @@ func TestAccessTokenRoundtrip(t *testing.T) {
 	}
 }
 
+func TestWithDelegation(t *testing.T) {
+	s := testService(t)
+
+	tok, err := s.GenerateAccessToken("user-1", []string{"admin"}, WithDelegation("internal-service", "read:resource"))
+	if err != nil {
+		t.Fatalf("GenerateAccessToken: %v", err)
+	}
+
+	claims, err := s.Verify(tok, TokenTypeAccess)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+
+	if !claims.IsDelegated() {
+		t.Error("IsDelegated() = false, want true")
+	}
+
+	if claims.ClientID != "internal-service" {
+		t.Errorf("ClientID = %q, want internal-service", claims.ClientID)
+	}
+
+	if len(claims.Roles) != 0 {
+		t.Errorf("Roles = %v, want empty — WithDelegation must clear roles passed to GenerateAccessToken", claims.Roles)
+	}
+
+	if got := claims.Permissions(); len(got) != 1 || got[0] != "read:resource" {
+		t.Errorf("Permissions() = %v, want [read:resource]", got)
+	}
+}
+
+func TestPermissionsNonDelegated(t *testing.T) {
+	s := testService(t)
+
+	tok, err := s.GenerateAccessToken("user-1", []string{"admin", "editor"})
+	if err != nil {
+		t.Fatalf("GenerateAccessToken: %v", err)
+	}
+
+	claims, err := s.Verify(tok, TokenTypeAccess)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+
+	if claims.IsDelegated() {
+		t.Error("IsDelegated() = true, want false for a direct user token")
+	}
+
+	got := claims.Permissions()
+	if len(got) != 2 || got[0] != "admin" || got[1] != "editor" {
+		t.Errorf("Permissions() = %v, want [admin editor]", got)
+	}
+}
+
 func TestRefreshTokenRejectedAsAccess(t *testing.T) {
 	s := testService(t)
 
