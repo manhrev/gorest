@@ -1,6 +1,7 @@
 import { useState } from "react";
 import LoginPage from "./LoginPage.jsx";
 import OAuthPage from "./OAuthPage.jsx";
+import JwksPage from "./JwksPage.jsx";
 import Callback from "./Callback.jsx";
 import "./style.css";
 
@@ -22,11 +23,16 @@ export default function App() {
         <button className={tab === "oauth" ? "active" : ""} onClick={() => setTab("oauth")}>
           OAuth
         </button>
+        <button className={tab === "jwks" ? "active" : ""} onClick={() => setTab("jwks")}>
+          JWKS
+        </button>
         <a href="http://localhost:8080/docs" target="_blank" rel="noreferrer">
           API docs
         </a>
       </nav>
-      {tab === "login" ? <LoginPage /> : <OAuthPage />}
+      {tab === "login" && <LoginPage />}
+      {tab === "oauth" && <OAuthPage />}
+      {tab === "jwks" && <JwksPage />}
     </div>
   );
 }
