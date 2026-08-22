@@ -1,0 +1,83 @@
+body {
+  font-family: -apple-system, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color: #222;
+}
+h1 {
+  font-size: 1.3rem;
+}
+nav {
+  margin-bottom: 1rem;
+}
+nav button {
+  margin-right: 0.5rem;
+  border: none;
+  background: #eee;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+nav button.active {
+  background: #3b82f6;
+  color: white;
+}
+nav a {
+  margin-left: 1rem;
+}
+fieldset {
+  margin: 1rem 0;
+  padding: 1rem;
+}
+label {
+  display: block;
+  margin: 0.5rem 0 0.2rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+input,
+select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem;
+  font-family: monospace;
+}
+button {
+  margin: 0.5rem 0.5rem 0.5rem 0;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+pre {
+  background: #f4f4f4;
+  padding: 0.75rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.8rem;
+  border-left: 3px solid #ccc;
+}
+.req pre {
+  border-left-color: #3b82f6;
+}
+.res pre {
+  border-left-color: #16a34a;
+}
+.res.err pre {
+  border-left-color: #dc2626;
+}
+.panel {
+  margin: 0.5rem 0 1.5rem;
+}
+.panel h3 {
+  margin: 0.3rem 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #666;
+}
+.hint {
+  color: #777;
+  font-size: 0.9rem;
+}
+.err-text {
+  color: #dc2626;
+}
