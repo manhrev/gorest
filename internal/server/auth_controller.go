@@ -114,5 +114,10 @@ func (s *Server) CheckAuth(ctx context.Context, input *dto.CheckAuthInput) (*res
 		return nil, response.NewError(ctx, err)
 	}
 
-	return response.NewOutput(ctx, dto.AuthIdentity{UserID: claims.Subject, Roles: claims.Roles}), nil
+	return response.NewOutput(ctx, dto.AuthIdentity{
+		UserID:   claims.Subject,
+		Roles:    claims.Roles,
+		ClientID: claims.ClientID,
+		Scope:    claims.Scope,
+	}), nil
 }

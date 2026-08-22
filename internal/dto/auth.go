@@ -35,8 +35,13 @@ type CheckAuthInput struct {
 	Authorization string `header:"Authorization" doc:"Bearer access token"`
 }
 
-// AuthIdentity is the check-auth operation response data.
+// AuthIdentity is the check-auth operation response data. For a direct user
+// token, Roles is populated and ClientID/Scope are empty. For a delegated
+// (OAuth) token, ClientID/Scope are populated and Roles is empty — see
+// jwtmanager.Claims.
 type AuthIdentity struct {
-	UserID string   `json:"userId"`
-	Roles  []string `json:"roles"`
+	UserID   string   `json:"userId"`
+	Roles    []string `json:"roles,omitempty"`
+	ClientID string   `json:"clientId,omitempty" doc:"OAuth client this token was issued to, only set on a delegated token"`
+	Scope    string   `json:"scope,omitempty" doc:"Space-separated OAuth scope, only set on a delegated token"`
 }
