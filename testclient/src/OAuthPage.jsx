@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { apiCall, jwtPayload, randomString, sha256Base64Url } from "./api.js";
 import Exchange from "./Exchange.jsx";
-
-// A real confidential client's secret never touches a browser — this map
-// exists purely so this test page can drive the exchange itself, in lieu
-// of a separate backend to hold it. It's exactly what code_verifier/PKCE
-// exists to protect against for clients that *can't* hold a secret at all.
-const CLIENT_SECRETS = { "internal-service": "dev-secret", "partner-app": "dev-secret" };
+import ActorBadge from "./ActorBadge.jsx";
 
 export default function OAuthPage() {
   const [client, setClient] = useState("internal-service");
@@ -16,7 +11,8 @@ export default function OAuthPage() {
   const [consent, setConsent] = useState(null); // { consentId } once pending
   const [authorizeResult, setAuthorizeResult] = useState(null);
   const [decisionResult, setDecisionResult] = useState(null);
-  const [exchangeResult, setExchangeResult] = useState(null);
+  const [exchangeResult, setExchangeResult] = useState(null); // client -> this app's /api/exchange
+  const [serverExchangeResult, setServerExchangeResult] = useState(null); // /api/exchange -> gorest
   const [decodedToken, setDecodedToken] = useState(null);
   const [pkceVerifier, setPkceVerifier] = useState("");
 
@@ -75,22 +71,27 @@ export default function OAuthPage() {
   }
 
   async function exchange() {
+    // client -> this app's own backend (vite.config.js's /api/exchange) —
+    // note no client_secret in this request at all, the browser never
+    // touches it.
     const r = await apiCall(
       "POST",
-      "/oauth/token",
+      window.location.origin + "/api/exchange",
       {},
-      {
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-        client_id: client,
-        client_secret: CLIENT_SECRETS[client],
-        code_verifier: pkceVerifier,
-      },
+      { code, redirect_uri: redirectUri, client_id: client, code_verifier: pkceVerifier },
     );
     setExchangeResult(r);
-    if (r.response.body?.access_token) {
-      setDecodedToken(jwtPayload(r.response.body.access_token));
+
+    // /api/exchange -> gorest — the actual confidential hop, reconstructed
+    // from what the backend reports doing (see vite.config.js). This is
+    // the only place client_secret ever appears, and it never left Node.
+    const serverHop = r.response.body?.server;
+    if (serverHop) {
+      setServerExchangeResult({ request: serverHop.request, response: serverHop.response, ok: serverHop.response.status < 400 });
+
+      if (serverHop.response.body?.access_token) {
+        setDecodedToken(jwtPayload(serverHop.response.body.access_token));
+      }
     }
   }
 
@@ -126,12 +127,14 @@ export default function OAuthPage() {
         <input value={redirectUri} onChange={(e) => setRedirectUri(e.target.value)} />
         <label>scope</label>
         <input value={scope} onChange={(e) => setScope(e.target.value)} />
+        <p><ActorBadge actor="client" /> — calls /oauth/authorize directly (no secret needed, only your own bearer token).</p>
         <button onClick={authorize}>1. Authorize</button>
       </fieldset>
       <Exchange result={authorizeResult} />
 
       {consent && (
         <fieldset>
+          <p><ActorBadge actor="client" /> — consent decision, also no secret needed.</p>
           <p>Consent required — approve or deny:</p>
           <button onClick={() => decide(true)}>Approve</button>
           <button onClick={() => decide(false)}>Deny</button>
@@ -142,9 +145,23 @@ export default function OAuthPage() {
       <fieldset>
         <label>code (from Authorize/Decide above, or paste one)</label>
         <input value={code} onChange={(e) => setCode(e.target.value)} />
+        <p><ActorBadge actor="client" /> — sends code+code_verifier to this app's own backend, no client_secret in this request.</p>
         <button onClick={exchange}>2. Exchange for token</button>
       </fieldset>
       <Exchange result={exchangeResult} />
+
+      {serverExchangeResult && (
+        <>
+          <p><ActorBadge actor="server" /> — the confidential hop: only here does client_secret get attached, server-to-server, never in browser JS.</p>
+          <p className="gap-note">
+            ⚠️ Known gap: /api/exchange hands the raw access_token/refresh_token straight back to this browser
+            below (so this page can display them) — a real confidential-client backend would normally keep the
+            token itself and give the browser only an httpOnly session cookie instead. What's actually
+            confidential here is the exchange call (the secret), not what happens to the token afterward.
+          </p>
+          <Exchange result={serverExchangeResult} />
+        </>
+      )}
 
       {decodedToken && (
         <div className="panel">

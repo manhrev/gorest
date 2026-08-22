@@ -92,6 +92,28 @@ table.params .param-key {
   white-space: nowrap;
   width: 1%;
 }
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+.badge.client {
+  background: #3b82f6;
+}
+.badge.server {
+  background: #7c3aed;
+}
+.gap-note {
+  background: #fff7ed;
+  border-left: 3px solid #f59e0b;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: #92400e;
+  margin: 0.5rem 0;
+}
 .hint {
   color: #777;
   font-size: 0.9rem;
