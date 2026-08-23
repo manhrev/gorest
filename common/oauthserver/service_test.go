@@ -157,7 +157,11 @@ const (
 
 var testChallenge = S256Challenge(testVerifier)
 
-func testService(t *testing.T) *Service {
+// testService returns a Service wired to a real authservice.Service (as
+// its TokenIssuer) plus that authservice.Service itself, so tests can
+// verify issued tokens (ValidateAccessToken) without the package needing
+// to expose s.auth.
+func testService(t *testing.T) (*Service, *authservice.Service) {
 	t.Helper()
 
 	priv, err := jwtmanager.LoadPrivateKey("../jwtmanager/testdata/priv.pem")
@@ -197,7 +201,7 @@ func testService(t *testing.T) *Service {
 		},
 	}}
 
-	return New(authSvc, clients, newFakeCodeStore(), newFakeConsentStore())
+	return New(authSvc, clients, newFakeCodeStore(), newFakeConsentStore()), authSvc
 }
 
 // extractCode pulls the "code" query param out of a "url?code=...&state=..."
@@ -221,7 +225,7 @@ func extractCode(t *testing.T, redirectURL string) string {
 // --- tests ---
 
 func TestAuthorizeExchangeRoundtrip(t *testing.T) {
-	s := testService(t)
+	s, authSvc := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -243,7 +247,7 @@ func TestAuthorizeExchangeRoundtrip(t *testing.T) {
 	// the issued token must carry the granted scope, not the user's own
 	// (broader) roles — user-alice's fakeUserLookup roles are ["admin"],
 	// but only "read:resource" was requested/granted.
-	claims, err := s.auth.ValidateAccessToken(ctx, access)
+	claims, err := authSvc.ValidateAccessToken(ctx, access)
 	if err != nil {
 		t.Fatalf("ValidateAccessToken: %v", err)
 	}
@@ -266,7 +270,7 @@ func TestAuthorizeExchangeRoundtrip(t *testing.T) {
 }
 
 func TestExchangeRejectsReusedCode(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -286,7 +290,7 @@ func TestExchangeRejectsReusedCode(t *testing.T) {
 }
 
 func TestExchangeRejectsWrongSecret(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -302,7 +306,7 @@ func TestExchangeRejectsWrongSecret(t *testing.T) {
 }
 
 func TestExchangeRejectsRedirectURIMismatch(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -318,7 +322,7 @@ func TestExchangeRejectsRedirectURIMismatch(t *testing.T) {
 }
 
 func TestExchangeRejectsExpiredCode(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	// insert an already-expired code directly, bypassing Authorize's TTL
@@ -340,7 +344,7 @@ func TestExchangeRejectsExpiredCode(t *testing.T) {
 }
 
 func TestExchangeRejectsWrongVerifier(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -356,7 +360,7 @@ func TestExchangeRejectsWrongVerifier(t *testing.T) {
 }
 
 func TestAuthorizeRejectsUnknownClient(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	if _, err := s.Authorize(ctx, "no-such-client", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256"); err == nil {
@@ -365,7 +369,7 @@ func TestAuthorizeRejectsUnknownClient(t *testing.T) {
 }
 
 func TestAuthorizeRejectsUnregisteredRedirectURI(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	if _, err := s.Authorize(ctx, "internal-service", "http://evil.example/callback", "read:resource", "xyz", "user-alice", testChallenge, "S256"); err == nil {
@@ -374,7 +378,7 @@ func TestAuthorizeRejectsUnregisteredRedirectURI(t *testing.T) {
 }
 
 func TestAuthorizeRejectsDisallowedScope(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	if _, err := s.Authorize(ctx, "internal-service", testRedirectURI, "write:resource", "xyz", "user-alice", testChallenge, "S256"); err == nil {
@@ -383,7 +387,7 @@ func TestAuthorizeRejectsDisallowedScope(t *testing.T) {
 }
 
 func TestAuthorizeRejectsMissingCodeChallenge(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	if _, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", "", "S256"); err == nil {
@@ -392,7 +396,7 @@ func TestAuthorizeRejectsMissingCodeChallenge(t *testing.T) {
 }
 
 func TestAuthorizeRejectsPlainMethod(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	if _, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "plain"); err == nil {
@@ -401,7 +405,7 @@ func TestAuthorizeRejectsPlainMethod(t *testing.T) {
 }
 
 func TestAuthorizeRequiresConsentForFlaggedClient(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -423,7 +427,7 @@ func TestAuthorizeRequiresConsentForFlaggedClient(t *testing.T) {
 }
 
 func TestDecideApprove(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -444,7 +448,7 @@ func TestDecideApprove(t *testing.T) {
 }
 
 func TestDecideDeny(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -472,7 +476,7 @@ func TestDecideDeny(t *testing.T) {
 }
 
 func TestDecideRejectsWrongUser(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -486,7 +490,7 @@ func TestDecideRejectsWrongUser(t *testing.T) {
 }
 
 func TestDecideRejectsReusedConsent(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -504,7 +508,7 @@ func TestDecideRejectsReusedConsent(t *testing.T) {
 }
 
 func TestDecideApprovePreservesCodeChallenge(t *testing.T) {
-	s := testService(t)
+	s, _ := testService(t)
 	ctx := context.Background()
 
 	result, err := s.Authorize(ctx, "partner-app", testPartnerRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
@@ -523,5 +527,46 @@ func TestDecideApprovePreservesCodeChallenge(t *testing.T) {
 	// survived the consent hop — a wrong verifier must still be rejected.
 	if _, _, err := s.Exchange(ctx, "partner-app", "partner-secret", code, testPartnerRedirectURI, "wrong-verifier"); err == nil {
 		t.Fatal("Exchange with wrong verifier after consent: expected error, got nil")
+	}
+}
+
+func TestClientCredentials(t *testing.T) {
+	s, authSvc := testService(t)
+	ctx := context.Background()
+
+	access, err := s.ClientCredentials(ctx, "internal-service", "dev-secret", "read:resource")
+	if err != nil {
+		t.Fatalf("ClientCredentials: %v", err)
+	}
+
+	claims, err := authSvc.ValidateAccessToken(ctx, access)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken: %v", err)
+	}
+
+	if claims.Subject != "internal-service" || claims.ClientID != "internal-service" {
+		t.Errorf("Subject/ClientID = %q/%q, want internal-service/internal-service", claims.Subject, claims.ClientID)
+	}
+
+	if got := claims.Permissions(); len(got) != 1 || got[0] != "read:resource" {
+		t.Errorf("Permissions() = %v, want [read:resource]", got)
+	}
+}
+
+func TestClientCredentialsRejectsBadSecret(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+
+	if _, err := s.ClientCredentials(ctx, "internal-service", "wrong-secret", "read:resource"); err == nil {
+		t.Fatal("ClientCredentials with bad secret: expected error, got nil")
+	}
+}
+
+func TestClientCredentialsRejectsUnallowedScope(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+
+	if _, err := s.ClientCredentials(ctx, "internal-service", "dev-secret", "admin:everything"); err == nil {
+		t.Fatal("ClientCredentials with unallowed scope: expected error, got nil")
 	}
 }

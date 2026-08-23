@@ -73,6 +73,19 @@ func (s *Service) IssueForClient(ctx context.Context, userID, clientID, scope st
 	return s.issue(ctx, userID, nil, jwtmanager.WithDelegation(clientID, scope))
 }
 
+// IssueAccessForClient issues an access-only token for an OAuth client
+// acting as itself (Client Credentials grant, RFC 6749 §4.4) — no user
+// involved, and no refresh token: unlike IssueForClient there's nothing to
+// refresh, the client just re-authenticates with its secret for a new one.
+func (s *Service) IssueAccessForClient(ctx context.Context, clientID, scope string) (access string, err error) {
+	access, err = s.jwt.GenerateAccessToken(clientID, nil, jwtmanager.WithDelegation(clientID, scope))
+	if err != nil {
+		return "", serviceerr.NewInternal(err)
+	}
+
+	return access, nil
+}
+
 // ValidateAccessToken verifies an access token, returns its claims. Also
 // checks the blocklist, so a revoked token is rejected before its exp.
 func (s *Service) ValidateAccessToken(ctx context.Context, token string) (*jwtmanager.Claims, error) {

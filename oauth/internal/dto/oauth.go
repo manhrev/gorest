@@ -55,16 +55,19 @@ type OAuthDecisionOutput struct {
 	Location string `header:"Location"`
 }
 
-// OAuthTokenInput represents the OAuth2 token operation request
-// (RFC 6749 §4.1.3).
+// OAuthTokenInput represents the OAuth2 token operation request: either
+// "authorization_code" (RFC 6749 §4.1.3 — Code/RedirectURI/CodeVerifier
+// required, Scope ignored) or "client_credentials" (RFC 6749 §4.4.2 —
+// Scope optional, Code/RedirectURI/CodeVerifier ignored).
 type OAuthTokenInput struct {
 	Body struct {
-		GrantType    string `json:"grant_type" doc:"Must be \"authorization_code\""`
-		Code         string `json:"code"`
-		RedirectURI  string `json:"redirect_uri"`
+		GrantType    string `json:"grant_type" doc:"\"authorization_code\" or \"client_credentials\""`
+		Code         string `json:"code,omitempty"`
+		RedirectURI  string `json:"redirect_uri,omitempty"`
 		ClientID     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
-		CodeVerifier string `json:"code_verifier" doc:"RFC 7636 PKCE verifier, required"`
+		CodeVerifier string `json:"code_verifier,omitempty" doc:"RFC 7636 PKCE verifier, required for authorization_code"`
+		Scope        string `json:"scope,omitempty" doc:"Requested scope, for client_credentials"`
 	}
 }
 
@@ -75,7 +78,7 @@ type OAuthTokenInput struct {
 type OAuthTokenOutput struct {
 	Body struct {
 		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
+		RefreshToken string `json:"refresh_token,omitempty"` // absent for client_credentials
 		TokenType    string `json:"token_type"`
 		ExpiresIn    int    `json:"expires_in"`
 	}

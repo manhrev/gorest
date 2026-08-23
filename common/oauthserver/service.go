@@ -1,8 +1,9 @@
 // Package oauthserver implements the OAuth2 Authorization Code grant
-// (RFC 6749 §4.1) for internal, confidential clients: no PKCE (clients hold
-// a client_secret), no dynamic client registration (ClientStore is expected
-// to be a small static list). Token issuance itself is delegated to
-// authservice.Service.
+// (RFC 6749 §4.1) and Client Credentials grant (RFC 6749 §4.4) for
+// internal, confidential clients: no PKCE (clients hold a client_secret),
+// no dynamic client registration (ClientStore is expected to be a small
+// static list). Token issuance itself is delegated to a TokenIssuer
+// (authservice.Service satisfies it).
 //
 // Consent is per-client (Client.RequireConsent): a client that doesn't
 // require it is auto-approved once the user is authenticated (first-party
@@ -10,82 +11,19 @@
 // instead of an immediate code — see Authorize's doc comment. There's no
 // consent *screen* here (no HTML/frontend in this codebase at all) — this
 // only implements the API side a frontend would call to render one.
+//
+// See client.go, code.go, consent.go for the Client/AuthorizationCode/
+// ConsentTicket types and their stores, and issuer.go for TokenIssuer.
 package oauthserver
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
-	"github.com/manhrev/gorest/common/authservice"
 	"github.com/manhrev/gorest/common/error/serviceerr"
 )
-
-// codeTTL is how long an authorization code is valid before exchange —
-// short-lived by design, it's meant to be exchanged within seconds of the
-// redirect, not stored or reused.
-const codeTTL = 2 * time.Minute
-
-// consentTTL is how long a pending consent decision stays open — the gap
-// between showing the user "App X wants Y" and them clicking Allow/Deny.
-const consentTTL = 5 * time.Minute
-
-// Client is a registered OAuth2 client (another confidential backend
-// service, not a browser/SPA — it holds Secret and calls Exchange itself).
-type Client struct {
-	ID             string
-	Secret         string
-	RedirectURIs   []string
-	Scopes         []string // scopes this client is allowed to request
-	RequireConsent bool     // if false, auto-approved once the user is authenticated (first-party trusted)
-}
-
-type ClientStore interface {
-	Get(ctx context.Context, clientID string) (Client, error)
-}
-
-// AuthorizationCode is what AuthorizationCodeStore persists between
-// Authorize (issues it) and Exchange (consumes it).
-type AuthorizationCode struct {
-	ClientID      string
-	UserID        string
-	RedirectURI   string
-	Scope         string
-	CodeChallenge string // RFC 7636, S256 method only
-	ExpiresAt     time.Time
-}
-
-// AuthorizationCodeStore holds short-lived, single-use authorization codes.
-type AuthorizationCodeStore interface {
-	Save(ctx context.Context, code string, ac AuthorizationCode) error
-	// Consume atomically gets and deletes code — single use, so a replay
-	// (or a second /token call for the same code) is rejected.
-	Consume(ctx context.Context, code string) (AuthorizationCode, error)
-}
-
-// ConsentTicket is what ConsentStore persists between Authorize (issues it,
-// for a RequireConsent client) and Decide (consumes it).
-type ConsentTicket struct {
-	ClientID      string
-	UserID        string
-	RedirectURI   string
-	Scope         string
-	State         string
-	CodeChallenge string // RFC 7636, S256 method only — carried through to grant on approve
-	ExpiresAt     time.Time
-}
-
-// ConsentStore holds short-lived, single-use pending consent decisions.
-type ConsentStore interface {
-	Save(ctx context.Context, consentID string, t ConsentTicket) error
-	// Consume atomically gets and deletes consentID — single use, so the
-	// same decision can't be replayed.
-	Consume(ctx context.Context, consentID string) (ConsentTicket, error)
-}
 
 // AuthorizeResult is what Authorize returns: either a redirect (grant went
 // straight through) or a pending consent that needs a Decide call first —
@@ -97,13 +35,13 @@ type AuthorizeResult struct {
 }
 
 type Service struct {
-	auth     *authservice.Service
+	auth     TokenIssuer
 	clients  ClientStore
 	codes    AuthorizationCodeStore
 	consents ConsentStore
 }
 
-func New(auth *authservice.Service, clients ClientStore, codes AuthorizationCodeStore, consents ConsentStore) *Service {
+func New(auth TokenIssuer, clients ClientStore, codes AuthorizationCodeStore, consents ConsentStore) *Service {
 	return &Service{auth: auth, clients: clients, codes: codes, consents: consents}
 }
 
@@ -141,11 +79,8 @@ func (s *Service) Authorize(ctx context.Context, clientID, redirectURI, scope, s
 			SetMessage("redirect_uri does not match a registered URI for this client.")
 	}
 
-	for sc := range strings.FieldsSeq(scope) {
-		if !slices.Contains(client.Scopes, sc) {
-			return AuthorizeResult{}, serviceerr.NewInvalidArgument(fmt.Errorf("scope %q not allowed for client", sc)).
-				SetMessage("Requested scope exceeds what this client is allowed.")
-		}
+	if err := checkScope(client, scope); err != nil {
+		return AuthorizeResult{}, err
 	}
 
 	if codeChallengeMethod != "S256" || codeChallenge == "" {
@@ -273,13 +208,21 @@ func (s *Service) Exchange(ctx context.Context, clientID, clientSecret, code, re
 	return s.auth.IssueForClient(ctx, ac.UserID, ac.ClientID, ac.Scope)
 }
 
-// newCode generates an opaque, single-use authorization code — a random
-// secret, not an identifier, so crypto/rand rather than uuid.
-func newCode() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("generate authorization code: %w", err)
+// ClientCredentials implements RFC 6749 §4.4 (Client Credentials Grant): a
+// client authenticates with its own client_secret and gets a token for
+// itself directly — no user, no redirect, no consent, no refresh token
+// (nothing to refresh; the client just calls this again with its secret).
+// For machine-to-machine callers where there's no user to act on behalf of.
+func (s *Service) ClientCredentials(ctx context.Context, clientID, clientSecret, scope string) (access string, err error) {
+	client, err := s.clients.Get(ctx, clientID)
+	if err != nil || client.Secret != clientSecret {
+		return "", serviceerr.NewUnauthenticated(fmt.Errorf("invalid client credentials")).
+			SetMessage("Invalid client_id or client_secret.")
 	}
 
-	return hex.EncodeToString(b), nil
+	if err := checkScope(client, scope); err != nil {
+		return "", err
+	}
+
+	return s.auth.IssueAccessForClient(ctx, clientID, scope)
 }

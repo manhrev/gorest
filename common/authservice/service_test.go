@@ -246,6 +246,33 @@ func TestRevokeRefreshToken(t *testing.T) {
 	}
 }
 
+func TestIssueAccessForClient(t *testing.T) {
+	s := testAuthService(t)
+	ctx := context.Background()
+
+	access, err := s.IssueAccessForClient(ctx, "partner-app", "read:resource")
+	if err != nil {
+		t.Fatalf("IssueAccessForClient: %v", err)
+	}
+
+	claims, err := s.ValidateAccessToken(ctx, access)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken: %v", err)
+	}
+
+	if claims.Subject != "partner-app" {
+		t.Errorf("Subject = %q, want partner-app", claims.Subject)
+	}
+
+	if claims.ClientID != "partner-app" {
+		t.Errorf("ClientID = %q, want partner-app", claims.ClientID)
+	}
+
+	if got := claims.Permissions(); len(got) != 1 || got[0] != "read:resource" {
+		t.Errorf("Permissions() = %v, want [read:resource]", got)
+	}
+}
+
 func TestRevokeAccessToken(t *testing.T) {
 	s := testAuthService(t)
 	ctx := context.Background()
