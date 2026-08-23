@@ -5,7 +5,7 @@ sql:
    pattern: "migrations/*.sql"
 type_system: database/sql
 types:
-  # Deliberately couples generated pkg/db/model to internal/dto: lets bob
+  # Deliberately couples generated internal/db/model to internal/dto: lets bob
   # decode users.meta straight into the typed union on scan (types.JSON[T]
   # round-trips via T's json.Marshaler/Unmarshaler, UserMetaBox already
   # implements both) instead of the model holding raw bytes for a converter
@@ -13,11 +13,11 @@ types:
   "types.JSON[dto.UserMetaBox]":
     imports:
       - '"github.com/stephenafamo/bob/types"'
-      - '"github.com/manhrev/gorest/internal/dto"'
+      - '"github.com/manhrev/gorest/huma-bob/internal/dto"'
   "types.JSON[dto.GroupInfoBox]":
     imports:
       - '"github.com/stephenafamo/bob/types"'
-      - '"github.com/manhrev/gorest/internal/dto"'
+      - '"github.com/manhrev/gorest/huma-bob/internal/dto"'
 replacements:
   - match:
       db_type: "uuid"
@@ -32,15 +32,15 @@ replacements:
     replace: "types.JSON[dto.GroupInfoBox]"
 plugins:
   dbinfo:
-    destination: ./pkg/db/dbinfo
+    destination: ./internal/db/dbinfo
   enums:
-    destination: ./pkg/db/enum
+    destination: ./internal/db/enum
     pkgname: enum
   models:
-    destination: ./pkg/db/model
+    destination: ./internal/db/model
     pkgname: model
   factory:
     disabled: true
   dberrors:
-    destination: ./pkg/db/dberror
+    destination: ./internal/db/dberror
     pkgname: dberror

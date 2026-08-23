@@ -3,8 +3,8 @@
 package server
 
 import (
-	groupservice "github.com/manhrev/gorest/internal/service/group"
-	userservice "github.com/manhrev/gorest/internal/service/user"
+	groupservice "github.com/manhrev/gorest/huma-bob/internal/service/group"
+	userservice "github.com/manhrev/gorest/huma-bob/internal/service/user"
 	"github.com/manhrev/gorest/pkg/authservice"
 	"github.com/manhrev/gorest/pkg/jwtmanager"
 	"github.com/manhrev/gorest/pkg/oauthserver"

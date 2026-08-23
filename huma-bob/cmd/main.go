@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/manhrev/gorest/internal/server"
+	"github.com/manhrev/gorest/huma-bob/internal/server"
 	applog "github.com/manhrev/gorest/pkg/log"
 )
 

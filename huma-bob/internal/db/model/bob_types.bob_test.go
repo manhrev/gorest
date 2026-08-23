@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 
-	"github.com/manhrev/gorest/internal/dto"
+	"github.com/manhrev/gorest/huma-bob/internal/dto"
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/types"
 )

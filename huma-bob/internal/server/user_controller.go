@@ -6,8 +6,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/manhrev/gorest/internal/code"
-	"github.com/manhrev/gorest/internal/dto"
+	"github.com/manhrev/gorest/huma-bob/internal/code"
+	"github.com/manhrev/gorest/huma-bob/internal/dto"
 	"github.com/manhrev/gorest/pkg/dto/response"
 )
 

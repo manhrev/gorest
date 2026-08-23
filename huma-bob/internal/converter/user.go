@@ -7,8 +7,8 @@ import (
 
 	"github.com/stephenafamo/bob/types"
 
-	"github.com/manhrev/gorest/internal/dto"
-	"github.com/manhrev/gorest/pkg/db/model"
+	"github.com/manhrev/gorest/huma-bob/internal/dto"
+	"github.com/manhrev/gorest/huma-bob/internal/db/model"
 )
 
 func UserToDto(m *model.User) dto.User {

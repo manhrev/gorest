@@ -21,21 +21,23 @@ services:
       - "16686:16686"  # UI (http://localhost:16686)
       - "4317:4317"    # OTLP gRPC receiver
 
-  app:
-    build: .
-    environment:
-      HTTP_HOST: 0.0.0.0
-      POSTGRES_HOST: db
-      POSTGRES_MIGRATE: "true"
-      TRACING_ENABLED: "true"
-      TRACING_COLLECTOR_HOST: jaeger
-      TRACING_SECURE: "false"
-    ports: ["8080:8080"]
-    depends_on:
-      db:
-        condition: service_healthy
-      jaeger:
-        condition: service_started
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: huma-bob/Dockerfile
+  #   environment:
+  #     HTTP_HOST: 0.0.0.0
+  #     POSTGRES_HOST: db
+  #     POSTGRES_MIGRATE: "true"
+  #     TRACING_ENABLED: "true"
+  #     TRACING_COLLECTOR_HOST: jaeger
+  #     TRACING_SECURE: "false"
+  #   ports: ["8080:8080"]
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     jaeger:
+  #       condition: service_started
 
 volumes:
   pgdata:

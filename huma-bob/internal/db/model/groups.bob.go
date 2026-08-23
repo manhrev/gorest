@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/manhrev/gorest/internal/dto"
+	"github.com/manhrev/gorest/huma-bob/internal/dto"
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/dialect"

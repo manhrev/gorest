@@ -14,11 +14,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/manhrev/gorest/internal/code"
-	"github.com/manhrev/gorest/internal/converter"
-	"github.com/manhrev/gorest/internal/dto"
-	grouprepo "github.com/manhrev/gorest/internal/repository/group"
-	"github.com/manhrev/gorest/pkg/db/model"
+	"github.com/manhrev/gorest/huma-bob/internal/code"
+	"github.com/manhrev/gorest/huma-bob/internal/converter"
+	"github.com/manhrev/gorest/huma-bob/internal/dto"
+	grouprepo "github.com/manhrev/gorest/huma-bob/internal/repository/group"
+	"github.com/manhrev/gorest/huma-bob/internal/db/model"
 	"github.com/manhrev/gorest/pkg/dto/request"
 	"github.com/manhrev/gorest/pkg/error/repoerr"
 	"github.com/manhrev/gorest/pkg/error/serviceerr"

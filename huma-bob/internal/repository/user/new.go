@@ -23,8 +23,8 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql/um"
 	bobpgx "github.com/stephenafamo/bob/drivers/pgx"
 
-	"github.com/manhrev/gorest/pkg/db/dberror"
-	"github.com/manhrev/gorest/pkg/db/model"
+	"github.com/manhrev/gorest/huma-bob/internal/db/dberror"
+	"github.com/manhrev/gorest/huma-bob/internal/db/model"
 	"github.com/manhrev/gorest/pkg/dto/request"
 	"github.com/manhrev/gorest/pkg/error/repoerr"
 )
