@@ -181,7 +181,9 @@ func TestAlgNoneRejected(t *testing.T) {
 func TestExpiredTokenRejected(t *testing.T) {
 	s := testService(t)
 
-	tok, err := s.generate("user-1", nil, TokenTypeAccess, -time.Minute)
+	tok, err := s.generate("user-1", TokenTypeAccess, func(c *Claims) {
+		c.ExpiresAt = jwt.NewNumericDate(time.Now().Add(-time.Minute))
+	})
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}

@@ -40,6 +40,10 @@ func New(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKey, cfg Config)
 // WithDomain, WithDeviceID.
 type ClaimOption func(*Claims)
 
+func WithRoles(roles []string) ClaimOption {
+	return func(c *Claims) { c.Roles = roles }
+}
+
 func WithDomain(domain string) ClaimOption {
 	return func(c *Claims) { c.Domain = domain }
 }
@@ -68,17 +72,27 @@ func WithDelegation(clientID, scope string) ClaimOption {
 	}
 }
 
-func (s *Service) generate(subject string, roles []string, tokenType string, duration time.Duration, opts ...ClaimOption) (string, error) {
+// duration returns how long a freshly generated token of tokenType stays
+// valid — a pure function of tokenType, so generate can derive it instead
+// of taking it as a param.
+func (s *Service) duration(tokenType TokenType) time.Duration {
+	if tokenType == TokenTypeRefresh {
+		return s.refreshTokenDuration
+	}
+
+	return s.accessTokenDuration
+}
+
+func (s *Service) generate(subject string, tokenType TokenType, opts ...ClaimOption) (string, error) {
 	now := time.Now()
 
 	claims := &Claims{
-		Identity:  Identity{Roles: roles},
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   subject,
 			Issuer:    s.issuer,
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(duration)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.duration(tokenType))),
 			ID:        uuid.NewString(),
 		},
 	}
@@ -98,16 +112,16 @@ func (s *Service) generate(subject string, roles []string, tokenType string, dur
 }
 
 func (s *Service) GenerateAccessToken(subject string, roles []string, opts ...ClaimOption) (string, error) {
-	return s.generate(subject, roles, TokenTypeAccess, s.accessTokenDuration, opts...)
+	return s.generate(subject, TokenTypeAccess, append([]ClaimOption{WithRoles(roles)}, opts...)...)
 }
 
 // GenerateRefreshToken carries only subject + type, least-privilege: smaller
 // blast radius if leaked.
 func (s *Service) GenerateRefreshToken(subject string) (string, error) {
-	return s.generate(subject, nil, TokenTypeRefresh, s.refreshTokenDuration)
+	return s.generate(subject, TokenTypeRefresh)
 }
 
-func (s *Service) Verify(tokenString string, wantType string) (*Claims, error) {
+func (s *Service) Verify(tokenString string, wantType TokenType) (*Claims, error) {
 	claims := &Claims{}
 
 	_, err := jwt.ParseWithClaims(tokenString, claims, func(*jwt.Token) (any, error) {

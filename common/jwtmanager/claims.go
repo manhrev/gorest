@@ -6,9 +6,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// TokenType distinguishes an access token from a refresh token — same JWT
+// shape/signing key otherwise, this is what stops one being replayed where
+// the other's expected (see Service.Verify).
+type TokenType string
+
 const (
-	TokenTypeAccess  = "access"
-	TokenTypeRefresh = "refresh"
+	TokenTypeAccess  TokenType = "access"
+	TokenTypeRefresh TokenType = "refresh"
 )
 
 // Identity holds the caller-visible claims. Subject (user id) lives in
@@ -33,7 +38,7 @@ type Identity struct {
 
 type Claims struct {
 	Identity
-	TokenType string `json:"typ"`
+	TokenType TokenType `json:"typ"`
 	jwt.RegisteredClaims
 }
 
