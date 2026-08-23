@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/manhrev/gorest/pkg/jwtmanager"
+import "github.com/manhrev/gorest/common/jwtmanager"
 
 // JWKSInput is a bare GET, no params.
 type JWKSInput struct{}

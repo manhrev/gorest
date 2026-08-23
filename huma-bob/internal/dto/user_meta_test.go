@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/manhrev/gorest/pkg/dto/wrapper"
+	"github.com/manhrev/gorest/common/dto/wrapper"
 )
 
 func TestUserMetaBox_RoundTrip(t *testing.T) {

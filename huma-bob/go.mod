@@ -1,6 +1,8 @@
 module github.com/manhrev/gorest/huma-bob
 
-go 1.26.2
+go 1.27.0
+
+replace github.com/manhrev/gorest/common => ../common
 
 require (
 	github.com/aarondl/opt v0.0.0-20250607033636-982744e1bd65
@@ -9,8 +11,8 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
-	github.com/manhrev/gorest v0.0.0-20260822162047-42c3d8904d39
-	github.com/stephenafamo/bob v0.49.0
+	github.com/manhrev/gorest/common v0.0.0-00010101000000-000000000000
+	github.com/stephenafamo/bob v0.50.0
 	github.com/stephenafamo/scan v0.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0
 )
@@ -46,12 +48,12 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.45.0 // indirect
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260803160001-6ac0973c030d // indirect
-	google.golang.org/grpc v1.83.0 // indirect
+	google.golang.org/grpc v1.83.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )

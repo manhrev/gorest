@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/manhrev/gorest/pkg/dto/wrapper"
+import "github.com/manhrev/gorest/common/dto/wrapper"
 
 // UserMeta is implemented by every concrete user-meta variant.
 //

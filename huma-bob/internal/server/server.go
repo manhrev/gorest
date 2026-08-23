@@ -5,9 +5,9 @@ package server
 import (
 	groupservice "github.com/manhrev/gorest/huma-bob/internal/service/group"
 	userservice "github.com/manhrev/gorest/huma-bob/internal/service/user"
-	"github.com/manhrev/gorest/pkg/authservice"
-	"github.com/manhrev/gorest/pkg/jwtmanager"
-	"github.com/manhrev/gorest/pkg/oauthserver"
+	"github.com/manhrev/gorest/common/authservice"
+	"github.com/manhrev/gorest/common/jwtmanager"
+	"github.com/manhrev/gorest/common/oauthserver"
 )
 
 // Server holds the app's dependencies and exposes them as huma operation

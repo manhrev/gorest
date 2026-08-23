@@ -25,8 +25,8 @@ import (
 
 	"github.com/manhrev/gorest/huma-bob/internal/db/dberror"
 	"github.com/manhrev/gorest/huma-bob/internal/db/model"
-	"github.com/manhrev/gorest/pkg/dto/request"
-	"github.com/manhrev/gorest/pkg/error/repoerr"
+	"github.com/manhrev/gorest/common/dto/request"
+	"github.com/manhrev/gorest/common/error/repoerr"
 )
 
 // userSortColumns whitelists the columns FindByFilters can sort by, keyed by

@@ -8,7 +8,7 @@ package dto
 import (
 	"time"
 
-	"github.com/manhrev/gorest/pkg/dto/request"
+	"github.com/manhrev/gorest/common/dto/request"
 )
 
 // User is the canonical user representation returned by the API.

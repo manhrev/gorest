@@ -9,8 +9,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/manhrev/gorest/huma-bob/internal/dto"
-	"github.com/manhrev/gorest/pkg/dto/response"
-	"github.com/manhrev/gorest/pkg/error/serviceerr"
+	"github.com/manhrev/gorest/common/dto/response"
+	"github.com/manhrev/gorest/common/error/serviceerr"
 )
 
 // registerOAuthRoutes registers the OAuth2 authorization-code endpoints

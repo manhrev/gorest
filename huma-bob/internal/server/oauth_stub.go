@@ -12,7 +12,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/manhrev/gorest/pkg/oauthserver"
+	"github.com/manhrev/gorest/common/oauthserver"
 )
 
 type stubClientStore struct {
