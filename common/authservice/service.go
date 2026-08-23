@@ -139,26 +139,25 @@ func (s *Service) RevokeRefreshToken(ctx context.Context, refreshToken string) e
 	return nil
 }
 
-// Refresh rotates a refresh token: the old jti is invalidated even if
-// issuing the replacement fails partway, so a token can never be reused.
+// Refresh rotates a plain (non-delegated) user refresh token, always
+// refetching current roles — the whole point of a refresh is to pick up a
+// role change without re-login. Rejects a delegated (OAuth) refresh token:
+// that one must never regain the user's full roles (RFC 6749 §6), it can
+// only carry forward the client/scope it was issued with — see
+// RefreshForClient, redeemed via /oauth/token instead.
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (access, refresh string, err error) {
 	claims, err := s.jwt.Verify(refreshToken, jwtmanager.TokenTypeRefresh)
 	if err != nil {
 		return "", "", serviceerr.NewUnauthenticated(err).SetMessage("Invalid or expired refresh token.")
 	}
 
-	storedUserID, err := s.store.Get(ctx, claims.ID)
-	if err != nil {
-		return "", "", serviceerr.NewUnauthenticated(err).SetMessage("Refresh token not recognized.")
+	if claims.IsDelegated() {
+		return "", "", serviceerr.NewUnauthenticated(fmt.Errorf("delegated refresh token used at /auth/refresh")).
+			SetMessage("This refresh token was issued to an OAuth client — redeem it via /oauth/token instead.")
 	}
 
-	if storedUserID != claims.Subject {
-		return "", "", serviceerr.NewUnauthenticated(fmt.Errorf("refresh token subject mismatch")).
-			SetMessage("Refresh token not recognized.")
-	}
-
-	if err := s.store.Delete(ctx, claims.ID); err != nil {
-		return "", "", serviceerr.NewInternal(err)
+	if err := s.consumeRefreshRecord(ctx, claims); err != nil {
+		return "", "", err
 	}
 
 	roles, err := s.users.RolesByUserID(ctx, claims.Subject)
@@ -169,6 +168,52 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (access, ref
 	return s.issue(ctx, claims.Subject, roles)
 }
 
+// RefreshForClient rotates a delegated refresh token (issued by
+// IssueForClient), reissuing access+refresh for the same client/scope it
+// already carried — never more (RFC 6749 §6). clientID must match the
+// token's own ClientID claim; the caller (oauthserver.Service.RefreshToken)
+// is expected to have already checked client_secret before calling this.
+func (s *Service) RefreshForClient(ctx context.Context, clientID, refreshToken string) (access, refresh string, err error) {
+	claims, err := s.jwt.Verify(refreshToken, jwtmanager.TokenTypeRefresh)
+	if err != nil {
+		return "", "", serviceerr.NewUnauthenticated(err).SetMessage("Invalid or expired refresh token.")
+	}
+
+	if !claims.IsDelegated() || claims.ClientID != clientID {
+		return "", "", serviceerr.NewUnauthenticated(fmt.Errorf("refresh token was not issued to this client")).
+			SetMessage("Refresh token not recognized.")
+	}
+
+	if err := s.consumeRefreshRecord(ctx, claims); err != nil {
+		return "", "", err
+	}
+
+	return s.issue(ctx, claims.Subject, nil, jwtmanager.WithDelegation(claims.ClientID, claims.Scope))
+}
+
+// consumeRefreshRecord single-uses (deletes) claims' store record after
+// confirming it matches — the store bookkeeping shared by Refresh and
+// RefreshForClient. Call only after a caller's own gate check (delegated
+// vs. not, clientID match), so a wrongly-routed token isn't burned before
+// being rejected.
+func (s *Service) consumeRefreshRecord(ctx context.Context, claims *jwtmanager.Claims) error {
+	storedUserID, err := s.store.Get(ctx, claims.ID)
+	if err != nil {
+		return serviceerr.NewUnauthenticated(err).SetMessage("Refresh token not recognized.")
+	}
+
+	if storedUserID != claims.Subject {
+		return serviceerr.NewUnauthenticated(fmt.Errorf("refresh token subject mismatch")).
+			SetMessage("Refresh token not recognized.")
+	}
+
+	if err := s.store.Delete(ctx, claims.ID); err != nil {
+		return serviceerr.NewInternal(err)
+	}
+
+	return nil
+}
+
 // issue generates a fresh access+refresh pair and records the refresh
 // token's jti in the store.
 func (s *Service) issue(ctx context.Context, userID string, roles []string, opts ...jwtmanager.ClaimOption) (access, refresh string, err error) {
@@ -177,7 +222,7 @@ func (s *Service) issue(ctx context.Context, userID string, roles []string, opts
 		return "", "", serviceerr.NewInternal(err)
 	}
 
-	refresh, err = s.jwt.GenerateRefreshToken(userID)
+	refresh, err = s.jwt.GenerateRefreshToken(userID, opts...)
 	if err != nil {
 		return "", "", serviceerr.NewInternal(err)
 	}

@@ -12,4 +12,8 @@ type TokenIssuer interface {
 	// IssueAccessForClient issues an access-only token for a client acting
 	// as itself, no user involved (Client Credentials grant).
 	IssueAccessForClient(ctx context.Context, clientID, scope string) (access string, err error)
+	// RefreshForClient rotates a delegated refresh token (from
+	// IssueForClient), reissuing access+refresh for the client/scope it
+	// already carried — never more (RFC 6749 §6).
+	RefreshForClient(ctx context.Context, clientID, refreshToken string) (access, refresh string, err error)
 }

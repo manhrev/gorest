@@ -273,6 +273,97 @@ func TestIssueAccessForClient(t *testing.T) {
 	}
 }
 
+func TestIssueForClientThenRefreshRejected(t *testing.T) {
+	s := testAuthService(t)
+	ctx := context.Background()
+
+	_, refresh, err := s.IssueForClient(ctx, "user-alice", "internal-service", "read:resource")
+	if err != nil {
+		t.Fatalf("IssueForClient: %v", err)
+	}
+
+	// a delegated refresh token must not be redeemable at /auth/refresh —
+	// that path always refetches full user roles (RFC 6749 §6 violation
+	// otherwise).
+	if _, _, err := s.Refresh(ctx, refresh); err == nil {
+		t.Fatal("Refresh with delegated refresh token: expected error, got nil")
+	}
+}
+
+func TestRefreshForClient(t *testing.T) {
+	s := testAuthService(t)
+	ctx := context.Background()
+
+	_, refresh1, err := s.IssueForClient(ctx, "user-alice", "internal-service", "read:resource")
+	if err != nil {
+		t.Fatalf("IssueForClient: %v", err)
+	}
+
+	access2, refresh2, err := s.RefreshForClient(ctx, "internal-service", refresh1)
+	if err != nil {
+		t.Fatalf("RefreshForClient: %v", err)
+	}
+
+	claims, err := s.ValidateAccessToken(ctx, access2)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken: %v", err)
+	}
+
+	if claims.Subject != "user-alice" {
+		t.Errorf("Subject = %q, want user-alice", claims.Subject)
+	}
+
+	if claims.ClientID != "internal-service" {
+		t.Errorf("ClientID = %q, want internal-service", claims.ClientID)
+	}
+
+	if got := claims.Permissions(); len(got) != 1 || got[0] != "read:resource" {
+		t.Errorf("Permissions() = %v, want [read:resource] — must carry forward unchanged, not refetch roles", got)
+	}
+
+	if len(claims.Roles) != 0 {
+		t.Errorf("Roles = %v, want empty — RefreshForClient must never grant the user's full roles", claims.Roles)
+	}
+
+	// old refresh token must now be rejected (single use / rotation)
+	if _, _, err := s.RefreshForClient(ctx, "internal-service", refresh1); err == nil {
+		t.Fatal("RefreshForClient with already-used refresh token: expected error, got nil")
+	}
+
+	// rotated refresh token must still work
+	if _, _, err := s.RefreshForClient(ctx, "internal-service", refresh2); err != nil {
+		t.Fatalf("RefreshForClient with rotated token: %v", err)
+	}
+}
+
+func TestRefreshForClientRejectsWrongClient(t *testing.T) {
+	s := testAuthService(t)
+	ctx := context.Background()
+
+	_, refresh, err := s.IssueForClient(ctx, "user-alice", "internal-service", "read:resource")
+	if err != nil {
+		t.Fatalf("IssueForClient: %v", err)
+	}
+
+	if _, _, err := s.RefreshForClient(ctx, "partner-app", refresh); err == nil {
+		t.Fatal("RefreshForClient with mismatched clientID: expected error, got nil")
+	}
+}
+
+func TestRefreshForClientRejectsPlainLoginToken(t *testing.T) {
+	s := testAuthService(t)
+	ctx := context.Background()
+
+	_, refresh, err := s.Login(ctx, "alice", "hunter2")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	if _, _, err := s.RefreshForClient(ctx, "internal-service", refresh); err == nil {
+		t.Fatal("RefreshForClient with plain login refresh token: expected error, got nil")
+	}
+}
+
 func TestRevokeAccessToken(t *testing.T) {
 	s := testAuthService(t)
 	ctx := context.Background()

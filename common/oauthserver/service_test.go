@@ -570,3 +570,55 @@ func TestClientCredentialsRejectsUnallowedScope(t *testing.T) {
 		t.Fatal("ClientCredentials with unallowed scope: expected error, got nil")
 	}
 }
+
+func TestRefreshToken(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+
+	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+
+	code := extractCode(t, result.RedirectURL)
+
+	_, refresh, err := s.Exchange(ctx, "internal-service", "dev-secret", code, testRedirectURI, testVerifier)
+	if err != nil {
+		t.Fatalf("Exchange: %v", err)
+	}
+
+	access2, refresh2, err := s.RefreshToken(ctx, "internal-service", "dev-secret", refresh)
+	if err != nil {
+		t.Fatalf("RefreshToken: %v", err)
+	}
+
+	if access2 == "" || refresh2 == "" {
+		t.Fatal("RefreshToken returned empty tokens")
+	}
+
+	// old refresh token must now be rejected (single use / rotation)
+	if _, _, err := s.RefreshToken(ctx, "internal-service", "dev-secret", refresh); err == nil {
+		t.Fatal("RefreshToken with already-used refresh token: expected error, got nil")
+	}
+}
+
+func TestRefreshTokenRejectsBadSecret(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+
+	result, err := s.Authorize(ctx, "internal-service", testRedirectURI, "read:resource", "xyz", "user-alice", testChallenge, "S256")
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+
+	code := extractCode(t, result.RedirectURL)
+
+	_, refresh, err := s.Exchange(ctx, "internal-service", "dev-secret", code, testRedirectURI, testVerifier)
+	if err != nil {
+		t.Fatalf("Exchange: %v", err)
+	}
+
+	if _, _, err := s.RefreshToken(ctx, "internal-service", "wrong-secret", refresh); err == nil {
+		t.Fatal("RefreshToken with bad secret: expected error, got nil")
+	}
+}

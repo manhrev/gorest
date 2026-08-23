@@ -55,19 +55,21 @@ type OAuthDecisionOutput struct {
 	Location string `header:"Location"`
 }
 
-// OAuthTokenInput represents the OAuth2 token operation request: either
+// OAuthTokenInput represents the OAuth2 token operation request: one of
 // "authorization_code" (RFC 6749 §4.1.3 — Code/RedirectURI/CodeVerifier
-// required, Scope ignored) or "client_credentials" (RFC 6749 §4.4.2 —
-// Scope optional, Code/RedirectURI/CodeVerifier ignored).
+// required), "client_credentials" (RFC 6749 §4.4.2 — Scope optional), or
+// "refresh_token" (RFC 6749 §6 — RefreshToken required, rotates a
+// delegated refresh token from a prior authorization_code exchange).
 type OAuthTokenInput struct {
 	Body struct {
-		GrantType    string `json:"grant_type" doc:"\"authorization_code\" or \"client_credentials\""`
+		GrantType    string `json:"grant_type" doc:"\"authorization_code\", \"client_credentials\", or \"refresh_token\""`
 		Code         string `json:"code,omitempty"`
 		RedirectURI  string `json:"redirect_uri,omitempty"`
 		ClientID     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
 		CodeVerifier string `json:"code_verifier,omitempty" doc:"RFC 7636 PKCE verifier, required for authorization_code"`
 		Scope        string `json:"scope,omitempty" doc:"Requested scope, for client_credentials"`
+		RefreshToken string `json:"refresh_token,omitempty" doc:"Required for refresh_token"`
 	}
 }
 

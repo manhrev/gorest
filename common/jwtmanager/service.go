@@ -130,9 +130,12 @@ func (s *Service) GenerateAccessToken(subject string, roles []string, opts ...Cl
 }
 
 // GenerateRefreshToken carries only subject + type, least-privilege: smaller
-// blast radius if leaked.
-func (s *Service) GenerateRefreshToken(subject string) (string, error) {
-	return s.generate(subject, TokenTypeRefresh)
+// blast radius if leaked. opts is normally empty; a delegated issuance
+// (WithDelegation) passes it through too, so the refresh token itself
+// carries ClientID/Scope — otherwise it'd be indistinguishable from a
+// plain login refresh token once signed.
+func (s *Service) GenerateRefreshToken(subject string, opts ...ClaimOption) (string, error) {
+	return s.generate(subject, TokenTypeRefresh, opts...)
 }
 
 func (s *Service) Verify(tokenString string, wantType TokenType) (*Claims, error) {

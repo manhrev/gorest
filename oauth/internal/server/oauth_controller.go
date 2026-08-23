@@ -41,7 +41,7 @@ func (s *Server) registerOAuthRoutes(api huma.API, basePath string) {
 		OperationID: "oauth-token",
 		Method:      http.MethodPost,
 		Path:        basePath + "/token",
-		Summary:     "Exchange an authorization code (authorization_code) or client credentials (client_credentials) for a token",
+		Summary:     "Exchange authorization_code/client_credentials for a token, or rotate one via refresh_token",
 		Tags:        []string{"OAuth"},
 	}, s.OAuthToken)
 }
@@ -123,9 +123,11 @@ func (s *Server) OAuthToken(ctx context.Context, input *dto.OAuthTokenInput) (*d
 		access, refresh, err = s.oauthSvc.Exchange(ctx, input.Body.ClientID, input.Body.ClientSecret, input.Body.Code, input.Body.RedirectURI, input.Body.CodeVerifier)
 	case "client_credentials":
 		access, err = s.oauthSvc.ClientCredentials(ctx, input.Body.ClientID, input.Body.ClientSecret, input.Body.Scope)
+	case "refresh_token":
+		access, refresh, err = s.oauthSvc.RefreshToken(ctx, input.Body.ClientID, input.Body.ClientSecret, input.Body.RefreshToken)
 	default:
 		return nil, response.NewError(ctx, serviceerr.NewInvalidArgument(fmt.Errorf("unsupported grant_type %q", input.Body.GrantType)).
-			SetMessage(`grant_type must be "authorization_code" or "client_credentials".`))
+			SetMessage(`grant_type must be "authorization_code", "client_credentials", or "refresh_token".`))
 	}
 	if err != nil {
 		return nil, response.NewError(ctx, err)

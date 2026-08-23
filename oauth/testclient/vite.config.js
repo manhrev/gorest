@@ -146,13 +146,77 @@ function oauthClientCredentialsProxy() {
   };
 }
 
+// oauthRefreshProxy: same idea again, for RFC 6749 §6 — POST /api/refresh,
+// browser never sees client_secret, this backend attaches it server-to-
+// server against gorest's /oauth/token with grant_type=refresh_token. Only
+// for a delegated (OAuth) refresh token from /api/exchange — a plain login
+// refresh token from the Login tab goes to /auth/refresh instead, no
+// client_secret involved there at all.
+function oauthRefreshProxy() {
+  return {
+    name: "oauth-refresh-proxy",
+    configureServer(server) {
+      server.middlewares.use("/api/refresh", async (req, res) => {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.end();
+          return;
+        }
+
+        let raw = "";
+        for await (const chunk of req) raw += chunk;
+        const { client_id, refresh_token } = JSON.parse(raw);
+
+        const serverRequestUrl = API_BASE + "/oauth/token";
+        const serverRequestHeaders = { "Content-Type": "application/json" };
+        const serverRequestBody = {
+          grant_type: "refresh_token",
+          client_id,
+          client_secret: CLIENT_SECRETS[client_id],
+          refresh_token,
+        };
+
+        const upstream = await fetch(serverRequestUrl, {
+          method: "POST",
+          headers: serverRequestHeaders,
+          body: JSON.stringify(serverRequestBody),
+        });
+        const text = await upstream.text();
+        let upstreamBody = null;
+        try {
+          upstreamBody = JSON.parse(text);
+        } catch {
+          // not JSON, fall through to raw text below
+        }
+
+        const payload = {
+          server: {
+            request: { method: "POST", url: serverRequestUrl, headers: serverRequestHeaders, body: serverRequestBody },
+            response: {
+              status: upstream.status,
+              statusText: upstream.statusText,
+              url: upstream.url,
+              headers: Object.fromEntries(upstream.headers.entries()),
+              body: upstreamBody ?? text,
+            },
+          },
+        };
+
+        res.statusCode = upstream.status;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(payload));
+      });
+    },
+  };
+}
+
 // strictPort matters here: the API server's stub OAuth clients
 // (internal/server/oauth_stub.go) have http://localhost:5173/callback
 // hardcoded as a registered redirect_uri. If Vite silently jumped to 5174
 // because 5173 was busy, the OAuth flow would fail redirect_uri validation
 // with no obvious reason why.
 export default defineConfig({
-  plugins: [react(), oauthExchangeProxy(), oauthClientCredentialsProxy()],
+  plugins: [react(), oauthExchangeProxy(), oauthClientCredentialsProxy(), oauthRefreshProxy()],
   server: {
     port: 5173,
     strictPort: true,

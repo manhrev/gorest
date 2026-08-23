@@ -1,6 +1,7 @@
 // Package oauthserver implements the OAuth2 Authorization Code grant
-// (RFC 6749 §4.1) and Client Credentials grant (RFC 6749 §4.4) for
-// internal, confidential clients: no PKCE (clients hold a client_secret),
+// (RFC 6749 §4.1), Client Credentials grant (RFC 6749 §4.4), and refreshing
+// a delegated access token (RFC 6749 §6) for internal, confidential
+// clients: no PKCE (clients hold a client_secret),
 // no dynamic client registration (ClientStore is expected to be a small
 // static list). Token issuance itself is delegated to a TokenIssuer
 // (authservice.Service satisfies it).
@@ -225,4 +226,18 @@ func (s *Service) ClientCredentials(ctx context.Context, clientID, clientSecret,
 	}
 
 	return s.auth.IssueAccessForClient(ctx, clientID, scope)
+}
+
+// RefreshToken implements RFC 6749 §6 (Refreshing an Access Token) for a
+// delegated refresh token issued by Exchange: the client re-authenticates
+// with its client_secret, gets back a rotated access+refresh pair carrying
+// the same client/scope as before — never more.
+func (s *Service) RefreshToken(ctx context.Context, clientID, clientSecret, refreshToken string) (access, refresh string, err error) {
+	client, err := s.clients.Get(ctx, clientID)
+	if err != nil || client.Secret != clientSecret {
+		return "", "", serviceerr.NewUnauthenticated(fmt.Errorf("invalid client credentials")).
+			SetMessage("Invalid client_id or client_secret.")
+	}
+
+	return s.auth.RefreshForClient(ctx, clientID, refreshToken)
 }

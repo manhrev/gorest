@@ -15,6 +15,9 @@ export default function OAuthPage() {
   const [serverExchangeResult, setServerExchangeResult] = useState(null); // /api/exchange -> gorest
   const [decodedToken, setDecodedToken] = useState(null);
   const [pkceVerifier, setPkceVerifier] = useState("");
+  const [refreshToken, setRefreshToken] = useState(""); // delegated refresh token, from Exchange or a prior Refresh
+  const [refreshResult, setRefreshResult] = useState(null); // client -> this app's /api/refresh
+  const [serverRefreshResult, setServerRefreshResult] = useState(null); // /api/refresh -> gorest
 
   const accessToken = localStorage.getItem("accessToken") || "";
 
@@ -92,6 +95,29 @@ export default function OAuthPage() {
       if (serverHop.response.body?.access_token) {
         setDecodedToken(jwtPayload(serverHop.response.body.access_token));
       }
+      if (serverHop.response.body?.refresh_token) {
+        setRefreshToken(serverHop.response.body.refresh_token);
+      }
+    }
+  }
+
+  async function refresh() {
+    // client -> this app's own backend (vite.config.js's /api/refresh) —
+    // no client_secret in this request either, same pattern as exchange().
+    const r = await apiCall("POST", window.location.origin + "/api/refresh", {}, { client_id: client, refresh_token: refreshToken });
+    setRefreshResult(r);
+
+    const serverHop = r.response.body?.server;
+    if (serverHop) {
+      setServerRefreshResult({ request: serverHop.request, response: serverHop.response, ok: serverHop.response.status < 400 });
+
+      if (serverHop.response.body?.access_token) {
+        setDecodedToken(jwtPayload(serverHop.response.body.access_token));
+      }
+      // rotated: the old refresh token is now single-used, swap in the new one.
+      if (serverHop.response.body?.refresh_token) {
+        setRefreshToken(serverHop.response.body.refresh_token);
+      }
     }
   }
 
@@ -160,6 +186,30 @@ export default function OAuthPage() {
             confidential here is the exchange call (the secret), not what happens to the token afterward.
           </p>
           <Exchange result={serverExchangeResult} />
+        </>
+      )}
+
+      {refreshToken && (
+        <fieldset>
+          <label>refresh_token (from Exchange above, or a prior Refresh — rotates on each use)</label>
+          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} />
+          <p>
+            <ActorBadge actor="client" /> — sends client_id+refresh_token to this app's own backend, no
+            client_secret in this request. Rejected at /auth/refresh (that path is for plain login tokens only) —
+            this is RFC 6749 §6's grant_type=refresh_token on /oauth/token instead.
+          </p>
+          <button onClick={refresh}>3. Refresh</button>
+        </fieldset>
+      )}
+      <Exchange result={refreshResult} />
+
+      {serverRefreshResult && (
+        <>
+          <p>
+            <ActorBadge actor="server" route="/api/refresh" /> — the confidential hop: only here does client_secret
+            get attached, server-to-server, never in browser JS.
+          </p>
+          <Exchange result={serverRefreshResult} />
         </>
       )}
 
