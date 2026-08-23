@@ -1,7 +1,7 @@
-package server
+package stub
 
 // ponytail: placeholder oauthserver.ClientStore/AuthorizationCodeStore
-// adapters, same spirit as auth_stub.go — one hardcoded client, in-process
+// adapters, same spirit as auth.go — one hardcoded client, in-process
 // code store (lost on restart, not shared across instances). Real
 // follow-up: a real client registry (DB table) once clients are more than
 // "the one other service I run", and a shared store (redis) once this runs
@@ -15,12 +15,12 @@ import (
 	"github.com/manhrev/gorest/common/oauthserver"
 )
 
-type stubClientStore struct {
+type ClientStore struct {
 	clients map[string]oauthserver.Client
 }
 
-func newStubClientStore() *stubClientStore {
-	return &stubClientStore{clients: map[string]oauthserver.Client{
+func NewClientStore() *ClientStore {
+	return &ClientStore{clients: map[string]oauthserver.Client{
 		"internal-service": {
 			ID:           "internal-service",
 			Secret:       "dev-secret",
@@ -38,7 +38,7 @@ func newStubClientStore() *stubClientStore {
 	}}
 }
 
-func (s *stubClientStore) Get(_ context.Context, clientID string) (oauthserver.Client, error) {
+func (s *ClientStore) Get(_ context.Context, clientID string) (oauthserver.Client, error) {
 	c, ok := s.clients[clientID]
 	if !ok {
 		return oauthserver.Client{}, errors.New("unknown client")
@@ -47,16 +47,16 @@ func (s *stubClientStore) Get(_ context.Context, clientID string) (oauthserver.C
 	return c, nil
 }
 
-type memCodeStore struct {
+type CodeStore struct {
 	mu    sync.Mutex
 	codes map[string]oauthserver.AuthorizationCode
 }
 
-func newMemCodeStore() *memCodeStore {
-	return &memCodeStore{codes: map[string]oauthserver.AuthorizationCode{}}
+func NewCodeStore() *CodeStore {
+	return &CodeStore{codes: map[string]oauthserver.AuthorizationCode{}}
 }
 
-func (s *memCodeStore) Save(_ context.Context, code string, ac oauthserver.AuthorizationCode) error {
+func (s *CodeStore) Save(_ context.Context, code string, ac oauthserver.AuthorizationCode) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.codes[code] = ac
@@ -64,7 +64,7 @@ func (s *memCodeStore) Save(_ context.Context, code string, ac oauthserver.Autho
 	return nil
 }
 
-func (s *memCodeStore) Consume(_ context.Context, code string) (oauthserver.AuthorizationCode, error) {
+func (s *CodeStore) Consume(_ context.Context, code string) (oauthserver.AuthorizationCode, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -77,16 +77,16 @@ func (s *memCodeStore) Consume(_ context.Context, code string) (oauthserver.Auth
 	return ac, nil
 }
 
-type memConsentStore struct {
+type ConsentStore struct {
 	mu      sync.Mutex
 	tickets map[string]oauthserver.ConsentTicket
 }
 
-func newMemConsentStore() *memConsentStore {
-	return &memConsentStore{tickets: map[string]oauthserver.ConsentTicket{}}
+func NewConsentStore() *ConsentStore {
+	return &ConsentStore{tickets: map[string]oauthserver.ConsentTicket{}}
 }
 
-func (s *memConsentStore) Save(_ context.Context, consentID string, t oauthserver.ConsentTicket) error {
+func (s *ConsentStore) Save(_ context.Context, consentID string, t oauthserver.ConsentTicket) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.tickets[consentID] = t
@@ -94,7 +94,7 @@ func (s *memConsentStore) Save(_ context.Context, consentID string, t oauthserve
 	return nil
 }
 
-func (s *memConsentStore) Consume(_ context.Context, consentID string) (oauthserver.ConsentTicket, error) {
+func (s *ConsentStore) Consume(_ context.Context, consentID string) (oauthserver.ConsentTicket, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

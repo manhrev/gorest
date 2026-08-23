@@ -1,4 +1,4 @@
-package server
+package stub
 
 // ponytail: placeholder authservice.CredentialVerifier/UserLookup/
 // RefreshTokenStore/AccessTokenBlocklist adapters, wired into serve.go so
@@ -16,15 +16,15 @@ import (
 	"time"
 )
 
-type stubVerifier struct {
+type Verifier struct {
 	users map[string]string // username -> password
 }
 
-func newStubVerifier() *stubVerifier {
-	return &stubVerifier{users: map[string]string{"alice": "hunter2"}}
+func NewVerifier() *Verifier {
+	return &Verifier{users: map[string]string{"alice": "hunter2"}}
 }
 
-func (v *stubVerifier) Verify(_ context.Context, username, password string) (string, error) {
+func (v *Verifier) Verify(_ context.Context, username, password string) (string, error) {
 	want, ok := v.users[username]
 	if !ok || want != password {
 		return "", errors.New("bad credentials")
@@ -33,28 +33,28 @@ func (v *stubVerifier) Verify(_ context.Context, username, password string) (str
 	return "user-" + username, nil
 }
 
-type stubUserLookup struct {
+type UserLookup struct {
 	roles map[string][]string // userID -> roles
 }
 
-func newStubUserLookup() *stubUserLookup {
-	return &stubUserLookup{roles: map[string][]string{"user-alice": {"admin"}}}
+func NewUserLookup() *UserLookup {
+	return &UserLookup{roles: map[string][]string{"user-alice": {"admin"}}}
 }
 
-func (u *stubUserLookup) RolesByUserID(_ context.Context, userID string) ([]string, error) {
+func (u *UserLookup) RolesByUserID(_ context.Context, userID string) ([]string, error) {
 	return u.roles[userID], nil
 }
 
-type memRefreshStore struct {
+type RefreshStore struct {
 	mu      sync.Mutex
 	records map[string]string // jti -> userID
 }
 
-func newMemRefreshStore() *memRefreshStore {
-	return &memRefreshStore{records: map[string]string{}}
+func NewRefreshStore() *RefreshStore {
+	return &RefreshStore{records: map[string]string{}}
 }
 
-func (s *memRefreshStore) Save(_ context.Context, jti, userID string, _ time.Time) error {
+func (s *RefreshStore) Save(_ context.Context, jti, userID string, _ time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.records[jti] = userID
@@ -62,7 +62,7 @@ func (s *memRefreshStore) Save(_ context.Context, jti, userID string, _ time.Tim
 	return nil
 }
 
-func (s *memRefreshStore) Get(_ context.Context, jti string) (string, error) {
+func (s *RefreshStore) Get(_ context.Context, jti string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -74,7 +74,7 @@ func (s *memRefreshStore) Get(_ context.Context, jti string) (string, error) {
 	return userID, nil
 }
 
-func (s *memRefreshStore) Delete(_ context.Context, jti string) error {
+func (s *RefreshStore) Delete(_ context.Context, jti string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.records, jti)
@@ -82,16 +82,16 @@ func (s *memRefreshStore) Delete(_ context.Context, jti string) error {
 	return nil
 }
 
-type memBlocklist struct {
+type Blocklist struct {
 	mu      sync.Mutex
 	blocked map[string]bool
 }
 
-func newMemBlocklist() *memBlocklist {
-	return &memBlocklist{blocked: map[string]bool{}}
+func NewBlocklist() *Blocklist {
+	return &Blocklist{blocked: map[string]bool{}}
 }
 
-func (b *memBlocklist) Block(_ context.Context, jti string, _ time.Time) error {
+func (b *Blocklist) Block(_ context.Context, jti string, _ time.Time) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.blocked[jti] = true
@@ -99,7 +99,7 @@ func (b *memBlocklist) Block(_ context.Context, jti string, _ time.Time) error {
 	return nil
 }
 
-func (b *memBlocklist) IsBlocked(_ context.Context, jti string) (bool, error) {
+func (b *Blocklist) IsBlocked(_ context.Context, jti string) (bool, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 

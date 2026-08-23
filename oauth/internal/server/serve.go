@@ -17,6 +17,7 @@ import (
 	"github.com/manhrev/gorest/common/middleware"
 	"github.com/manhrev/gorest/common/oauthserver"
 	"github.com/manhrev/gorest/common/tracing"
+	"github.com/manhrev/gorest/oauth/internal/service/stub"
 )
 
 // Run sets up every dependency and serves until ctx is canceled (or
@@ -76,10 +77,10 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("init jwtmanager: %w", err)
 	}
 
-	authSvc := authservice.New(jwtSvc, newStubVerifier(), newStubUserLookup(), newMemRefreshStore(), newMemBlocklist())
+	authSvc := authservice.New(jwtSvc, stub.NewVerifier(), stub.NewUserLookup(), stub.NewRefreshStore(), stub.NewBlocklist())
 	srv := NewServer(
 		authSvc,
-		oauthserver.New(authSvc, newStubClientStore(), newMemCodeStore(), newMemConsentStore()),
+		oauthserver.New(authSvc, stub.NewClientStore(), stub.NewCodeStore(), stub.NewConsentStore()),
 		jwtSvc,
 	)
 	srv.registerAuthRoutes(api, "/auth")
