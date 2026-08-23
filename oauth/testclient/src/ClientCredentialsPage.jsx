@@ -45,35 +45,35 @@ export default function ClientCredentialsPage() {
         for itself directly (machine-to-machine). No /authorize, no /decision, no code.
       </p>
 
-      <fieldset>
-        <label>Client</label>
-        <select value={client} onChange={(e) => setClient(e.target.value)}>
-          <option value="internal-service">internal-service</option>
-          <option value="partner-app">partner-app</option>
-        </select>
-        <label>scope</label>
-        <input value={scope} onChange={(e) => setScope(e.target.value)} />
-        <p>
-          <ActorBadge actor="client" /> — sends client_id+scope to this app's own backend, no client_secret in
-          this request.
-        </p>
-        <button onClick={requestToken}>Request token</button>
-      </fieldset>
-      <Exchange result={browserResult} />
+      <div>
+        <h2><ActorBadge actor="server" /> calls — attaches client_secret</h2>
 
-      {serverResult && (
-        <>
-          <p>
-            <ActorBadge actor="server" route="/api/client-credentials" /> — the confidential hop: only here does
-            client_secret get attached, server-to-server, never in browser JS.
-          </p>
-          <p className="gap-note">
-            ⚠️ Known gap: /api/client-credentials hands the raw access_token straight back to this browser below (so
-            this page can display it) — a real confidential-client backend would normally keep the token itself.
-          </p>
-          <Exchange result={serverResult} />
-        </>
-      )}
+        <fieldset>
+          <label>Client</label>
+          <select value={client} onChange={(e) => setClient(e.target.value)}>
+            <option value="internal-service">internal-service</option>
+            <option value="partner-app">partner-app</option>
+          </select>
+          <label>scope</label>
+          <input value={scope} onChange={(e) => setScope(e.target.value)} />
+          <p>Browser only sends client_id+scope to this app's own backend, no client_secret in this request.</p>
+          <button onClick={requestToken}>Request token</button>
+        </fieldset>
+
+        {serverResult ? (
+          <>
+            <p>The confidential hop: only here does client_secret get attached, server-to-server, never in browser JS.</p>
+            <p className="gap-note">
+              ⚠️ Known gap: /api/client-credentials hands the raw access_token straight back to this browser below
+              (so this page can display it) — a real confidential-client backend would normally keep the token
+              itself.
+            </p>
+            <Exchange result={serverResult} />
+          </>
+        ) : (
+          <p className="hint">Nothing yet — click "Request token" above.</p>
+        )}
+      </div>
 
       {decodedToken && (
         <div className="panel">

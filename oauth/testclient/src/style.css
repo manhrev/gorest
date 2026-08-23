@@ -1,12 +1,27 @@
 body {
   font-family: -apple-system, sans-serif;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 2rem auto;
   padding: 0 1rem;
   color: #222;
 }
 h1 {
   font-size: 1.3rem;
+}
+.oauth-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+.oauth-columns h2 {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+}
+@media (max-width: 700px) {
+  .oauth-columns {
+    grid-template-columns: 1fr;
+  }
 }
 nav {
   margin-bottom: 1rem;

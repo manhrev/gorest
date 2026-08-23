@@ -137,81 +137,87 @@ export default function OAuthPage() {
         )}
       </p>
 
-      <fieldset>
-        <label>Client</label>
-        <select
-          value={client}
-          onChange={(e) => {
-            setClient(e.target.value);
-            setConsent(null);
-          }}
-        >
-          <option value="internal-service">internal-service (auto-approved, no consent)</option>
-          <option value="partner-app">partner-app (RequireConsent)</option>
-        </select>
-        <label>redirect_uri</label>
-        <input value={redirectUri} onChange={(e) => setRedirectUri(e.target.value)} />
-        <label>scope</label>
-        <input value={scope} onChange={(e) => setScope(e.target.value)} />
-        <p><ActorBadge actor="client" /> — calls /oauth/authorize directly (no secret needed, only your own bearer token).</p>
-        <button onClick={authorize}>1. Authorize</button>
-      </fieldset>
-      <Exchange result={authorizeResult} />
+      <div className="oauth-columns">
+        <div>
+          <h2><ActorBadge actor="client" /> calls — bearer token only, no client_secret</h2>
 
-      {consent && (
-        <fieldset>
-          <p><ActorBadge actor="client" /> — consent decision, also no secret needed.</p>
-          <p>Consent required — approve or deny:</p>
-          <button onClick={() => decide(true)}>Approve</button>
-          <button onClick={() => decide(false)}>Deny</button>
-        </fieldset>
-      )}
-      <Exchange result={decisionResult} />
+          <fieldset>
+            <label>Client</label>
+            <select
+              value={client}
+              onChange={(e) => {
+                setClient(e.target.value);
+                setConsent(null);
+              }}
+            >
+              <option value="internal-service">internal-service (auto-approved, no consent)</option>
+              <option value="partner-app">partner-app (RequireConsent)</option>
+            </select>
+            <label>redirect_uri</label>
+            <input value={redirectUri} onChange={(e) => setRedirectUri(e.target.value)} />
+            <label>scope</label>
+            <input value={scope} onChange={(e) => setScope(e.target.value)} />
+            <p>Calls /oauth/authorize directly (no secret needed, only your own bearer token).</p>
+            <button onClick={authorize}>1. Authorize</button>
+          </fieldset>
+          <Exchange result={authorizeResult} />
 
-      <fieldset>
-        <label>code (from Authorize/Decide above, or paste one)</label>
-        <input value={code} onChange={(e) => setCode(e.target.value)} />
-        <p><ActorBadge actor="client" /> — sends code+code_verifier to this app's own backend, no client_secret in this request.</p>
-        <button onClick={exchange}>2. Exchange for token</button>
-      </fieldset>
-      <Exchange result={exchangeResult} />
+          {consent && (
+            <fieldset>
+              <p>Consent decision, also no secret needed. Consent required — approve or deny:</p>
+              <button onClick={() => decide(true)}>Approve</button>
+              <button onClick={() => decide(false)}>Deny</button>
+            </fieldset>
+          )}
+          <Exchange result={decisionResult} />
+        </div>
 
-      {serverExchangeResult && (
-        <>
-          <p><ActorBadge actor="server" /> — the confidential hop: only here does client_secret get attached, server-to-server, never in browser JS.</p>
-          <p className="gap-note">
-            ⚠️ Known gap: /api/exchange hands the raw access_token/refresh_token straight back to this browser
-            below (so this page can display them) — a real confidential-client backend would normally keep the
-            token itself and give the browser only an httpOnly session cookie instead. What's actually
-            confidential here is the exchange call (the secret), not what happens to the token afterward.
-          </p>
-          <Exchange result={serverExchangeResult} />
-        </>
-      )}
+        <div>
+          <h2><ActorBadge actor="server" /> calls — attaches client_secret</h2>
 
-      {refreshToken && (
-        <fieldset>
-          <label>refresh_token (from Exchange above, or a prior Refresh — rotates on each use)</label>
-          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} />
-          <p>
-            <ActorBadge actor="client" /> — sends client_id+refresh_token to this app's own backend, no
-            client_secret in this request. Rejected at /auth/refresh (that path is for plain login tokens only) —
-            this is RFC 6749 §6's grant_type=refresh_token on /oauth/token instead.
-          </p>
-          <button onClick={refresh}>3. Refresh</button>
-        </fieldset>
-      )}
-      <Exchange result={refreshResult} />
+          <fieldset>
+            <label>code (from Authorize/Decide on the left, or paste one)</label>
+            <input value={code} onChange={(e) => setCode(e.target.value)} />
+            <p>Sends code+code_verifier to this app's own backend, no client_secret in this browser-side request.</p>
+            <button onClick={exchange}>2. Exchange for token</button>
+          </fieldset>
+          <Exchange result={exchangeResult} />
 
-      {serverRefreshResult && (
-        <>
-          <p>
-            <ActorBadge actor="server" route="/api/refresh" /> — the confidential hop: only here does client_secret
-            get attached, server-to-server, never in browser JS.
-          </p>
-          <Exchange result={serverRefreshResult} />
-        </>
-      )}
+          {serverExchangeResult && (
+            <>
+              <p>The confidential hop: only here does client_secret get attached, server-to-server, never in browser JS.</p>
+              <p className="gap-note">
+                ⚠️ Known gap: /api/exchange hands the raw access_token/refresh_token straight back to this browser
+                below (so this page can display them) — a real confidential-client backend would normally keep the
+                token itself and give the browser only an httpOnly session cookie instead. What's actually
+                confidential here is the exchange call (the secret), not what happens to the token afterward.
+              </p>
+              <Exchange result={serverExchangeResult} />
+            </>
+          )}
+
+          {refreshToken && (
+            <fieldset>
+              <label>refresh_token (from Exchange above, or a prior Refresh — rotates on each use)</label>
+              <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} />
+              <p>
+                Sends client_id+refresh_token to this app's own backend, no client_secret in this browser-side
+                request. Rejected at /auth/refresh (that path is for plain login tokens only) — this is RFC 6749
+                §6's grant_type=refresh_token on /oauth/token instead.
+              </p>
+              <button onClick={refresh}>3. Refresh</button>
+            </fieldset>
+          )}
+          <Exchange result={refreshResult} />
+
+          {serverRefreshResult && (
+            <>
+              <p>The confidential hop: only here does client_secret get attached, server-to-server, never in browser JS.</p>
+              <Exchange result={serverRefreshResult} />
+            </>
+          )}
+        </div>
+      </div>
 
       {decodedToken && (
         <div className="panel">
