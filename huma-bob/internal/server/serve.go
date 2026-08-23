@@ -15,11 +15,8 @@ import (
 	userrepo "github.com/manhrev/gorest/huma-bob/internal/repository/user"
 	groupservice "github.com/manhrev/gorest/huma-bob/internal/service/group"
 	userservice "github.com/manhrev/gorest/huma-bob/internal/service/user"
-	"github.com/manhrev/gorest/common/authservice"
-	"github.com/manhrev/gorest/common/jwtmanager"
 	applog "github.com/manhrev/gorest/common/log"
 	"github.com/manhrev/gorest/common/middleware"
-	"github.com/manhrev/gorest/common/oauthserver"
 	"github.com/manhrev/gorest/common/postgres"
 	"github.com/manhrev/gorest/common/tracing"
 	"github.com/manhrev/gorest/common/txrunner"
@@ -54,54 +51,16 @@ func Run(ctx context.Context) error {
 
 	router := http.NewServeMux()
 	humaConfig := huma.DefaultConfig("My API", "1.0.0")
-	// Lets the docs UI (Stoplight Elements at /docs, Swagger at /swagger)
-	// prompt for the token via its own Authorize/lock-icon flow and attach
-	// it correctly — both UIs are known to silently drop a manually-typed
-	// plain "Authorization" header param, they only send it through a
-	// declared security scheme.
-	humaConfig.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-		"bearerAuth": {
-			Type:         "http",
-			Scheme:       "bearer",
-			BearerFormat: "JWT",
-		},
-	}
 	api := humago.New(router, humaConfig)
 	registerSwaggerRoute(router)
 
-	jwtPriv, err := jwtmanager.LoadPrivateKey(cfg.JWT.PrivateKeyFile)
-	if err != nil {
-		return fmt.Errorf("load jwt private key: %w", err)
-	}
-
-	jwtPub, err := jwtmanager.LoadPublicKey(cfg.JWT.PublicKeyFile)
-	if err != nil {
-		return fmt.Errorf("load jwt public key: %w", err)
-	}
-
-	jwtSvc, err := jwtmanager.New(jwtPriv, jwtPub, jwtmanager.Config{
-		AccessTokenDuration:  cfg.JWT.AccessTokenDuration,
-		RefreshTokenDuration: cfg.JWT.RefreshTokenDuration,
-		Issuer:               cfg.JWT.Issuer,
-	})
-	if err != nil {
-		return fmt.Errorf("init jwtmanager: %w", err)
-	}
-
 	groupRepo := grouprepo.New(pgPool)
-	authSvc := authservice.New(jwtSvc, newStubVerifier(), newStubUserLookup(), newMemRefreshStore(), newMemBlocklist())
 	srv := NewServer(
 		userservice.New(userrepo.New(pgPool), groupRepo, txrunner.New(pgPool)),
 		groupservice.New(groupRepo),
-		authSvc,
-		oauthserver.New(authSvc, newStubClientStore(), newMemCodeStore(), newMemConsentStore()),
-		jwtSvc,
 	)
 	srv.registerUserRoutes(api, "/users")
 	srv.registerGroupRoutes(api, "/groups")
-	srv.registerAuthRoutes(api, "/auth")
-	srv.registerOAuthRoutes(api, "/oauth")
-	srv.registerJWKSRoute(api)
 
 	handler := middleware.CORS(cfg.AllowedOrigins)(
 		middleware.Metadata(cfg.App.Version)(

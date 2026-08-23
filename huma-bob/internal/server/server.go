@@ -5,9 +5,6 @@ package server
 import (
 	groupservice "github.com/manhrev/gorest/huma-bob/internal/service/group"
 	userservice "github.com/manhrev/gorest/huma-bob/internal/service/user"
-	"github.com/manhrev/gorest/common/authservice"
-	"github.com/manhrev/gorest/common/jwtmanager"
-	"github.com/manhrev/gorest/common/oauthserver"
 )
 
 // Server holds the app's dependencies and exposes them as huma operation
@@ -16,11 +13,8 @@ import (
 type Server struct {
 	userSvc  *userservice.Service
 	groupSvc *groupservice.Service
-	authSvc  *authservice.Service
-	oauthSvc *oauthserver.Service
-	jwtSvc   *jwtmanager.Service
 }
 
-func NewServer(userSvc *userservice.Service, groupSvc *groupservice.Service, authSvc *authservice.Service, oauthSvc *oauthserver.Service, jwtSvc *jwtmanager.Service) *Server {
-	return &Server{userSvc: userSvc, groupSvc: groupSvc, authSvc: authSvc, oauthSvc: oauthSvc, jwtSvc: jwtSvc}
+func NewServer(userSvc *userservice.Service, groupSvc *groupservice.Service) *Server {
+	return &Server{userSvc: userSvc, groupSvc: groupSvc}
 }
