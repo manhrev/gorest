@@ -26,7 +26,7 @@ export default function App() {
         <button className={tab === "jwks" ? "active" : ""} onClick={() => setTab("jwks")}>
           JWKS
         </button>
-        <a href="http://localhost:8080/docs" target="_blank" rel="noreferrer">
+        <a href="http://localhost:8081/docs" target="_blank" rel="noreferrer">
           API docs
         </a>
       </nav>

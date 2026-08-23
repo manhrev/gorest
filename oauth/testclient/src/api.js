@@ -1,8 +1,8 @@
-// Cross-origin by design (this app runs on :5173, the API on :8080) — the
-// API's CORS middleware (pkg/middleware/middleware.go) already allows any
+// Cross-origin by design (this app runs on :5173, the API on :8081) — the
+// API's CORS middleware (common/middleware/middleware.go) already allows any
 // origin + Authorization/Content-Type headers + preflight, no server change
-// needed for that. The gorest server must be running for any of this to work.
-export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
+// needed for that. The oauth server must be running for any of this to work.
+export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8081";
 
 // apiCall: fetch wrapper that returns both the request it made and the
 // response it got, shaped for direct display (not just the parsed body) —

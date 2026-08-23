@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://localhost:8081";
 
 // Real confidential-client secrets — held server-side only, in this file.
 // vite.config.js runs in Node (Vite's own dev-server process), never

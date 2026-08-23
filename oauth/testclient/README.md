@@ -1,15 +1,15 @@
 # testclient
 
-Minimal Vite + React app for manually exercising gorest's auth + OAuth2
-flows in a browser — dev tooling only, not part of the API.
+Minimal Vite + React app for manually exercising the oauth demo server's
+auth + OAuth2 flows in a browser — dev tooling only, not part of the API.
 
 ```sh
 pnpm install
 pnpm dev   # http://localhost:5173
 ```
 
-The gorest API server must be running at `http://localhost:8080` (`go run
-./cmd` from the repo root) — every request here is cross-origin against it.
+The oauth server must be running at `http://localhost:8081` (`go run ./cmd`
+from the `oauth` directory) — every request here is cross-origin against it.
 
 Pages:
 - **Login** — `alice`/`hunter2` (stub creds, `internal/server/auth_stub.go`) → `/auth/login`, plus Check Auth / Logout.
