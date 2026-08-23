@@ -62,11 +62,12 @@ func (s *Server) OAuthAuthorize(ctx context.Context, input *dto.OAuthAuthorizeIn
 		return nil, response.NewError(ctx, err)
 	}
 
-	if claims.IsDelegated() {
-		// a client's own delegated token can't be used to mint further
-		// delegations on the user's behalf — only the user's own token can.
-		return nil, response.NewError(ctx, serviceerr.NewPermissionDenied(fmt.Errorf("delegated token cannot authorize another client")).
-			SetMessage("A delegated access token cannot be used to authorize another client."))
+	if !claims.HasAudience(s.audience) {
+		// a delegated token's aud is the client it was issued to, not this
+		// service — it can't be used to mint further delegations on the
+		// user's behalf, only the user's own (non-delegated) token can.
+		return nil, response.NewError(ctx, serviceerr.NewPermissionDenied(fmt.Errorf("token audience does not include this service")).
+			SetMessage("This access token is not valid for this service."))
 	}
 
 	result, err := s.oauthSvc.Authorize(ctx, input.ClientID, input.RedirectURI, input.Scope, input.State, claims.Subject, input.CodeChallenge, input.CodeChallengeMethod)
@@ -96,6 +97,13 @@ func (s *Server) OAuthDecision(ctx context.Context, input *dto.OAuthDecisionInpu
 	claims, err := s.authSvc.ValidateAccessToken(ctx, token)
 	if err != nil {
 		return nil, response.NewError(ctx, err)
+	}
+
+	if !claims.HasAudience(s.audience) {
+		// same reasoning as OAuthAuthorize: only the user's own token may
+		// decide their own pending consent, not a delegated one.
+		return nil, response.NewError(ctx, serviceerr.NewPermissionDenied(fmt.Errorf("token audience does not include this service")).
+			SetMessage("This access token is not valid for this service."))
 	}
 
 	redirectURL, err := s.oauthSvc.Decide(ctx, input.Body.ConsentID, input.Body.Approve, claims.Subject)

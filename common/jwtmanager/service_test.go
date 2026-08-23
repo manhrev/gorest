@@ -86,6 +86,68 @@ func TestWithDelegation(t *testing.T) {
 	if got := claims.Permissions(); len(got) != 1 || got[0] != "read:resource" {
 		t.Errorf("Permissions() = %v, want [read:resource]", got)
 	}
+
+	if !claims.HasAudience("internal-service") {
+		t.Errorf("Audience = %v, want [internal-service] — WithDelegation must narrow aud to just the client", claims.Audience)
+	}
+
+	if claims.HasAudience("gorest-test") {
+		t.Error("HasAudience(issuer) = true, want false — delegated token must not carry the default audience")
+	}
+}
+
+func TestDefaultAudience(t *testing.T) {
+	priv, err := LoadPrivateKey("testdata/priv.pem")
+	if err != nil {
+		t.Fatalf("LoadPrivateKey: %v", err)
+	}
+
+	pub, err := LoadPublicKey("testdata/pub.pem")
+	if err != nil {
+		t.Fatalf("LoadPublicKey: %v", err)
+	}
+
+	s, err := New(priv, pub, Config{
+		AccessTokenDuration:  time.Hour,
+		RefreshTokenDuration: 24 * time.Hour,
+		Issuer:               "gorest-test",
+		Audience:             []string{"gorest-test"},
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	tok, err := s.GenerateAccessToken("user-1", []string{"admin"})
+	if err != nil {
+		t.Fatalf("GenerateAccessToken: %v", err)
+	}
+
+	claims, err := s.Verify(tok, TokenTypeAccess)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+
+	if !claims.HasAudience("gorest-test") {
+		t.Errorf("Audience = %v, want to include configured default gorest-test", claims.Audience)
+	}
+}
+
+func TestWithAudienceOverride(t *testing.T) {
+	s := testService(t)
+
+	tok, err := s.GenerateAccessToken("user-1", []string{"admin"}, WithAudience("some-other-service"))
+	if err != nil {
+		t.Fatalf("GenerateAccessToken: %v", err)
+	}
+
+	claims, err := s.Verify(tok, TokenTypeAccess)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+
+	if !claims.HasAudience("some-other-service") {
+		t.Errorf("Audience = %v, want [some-other-service]", claims.Audience)
+	}
 }
 
 func TestPermissionsNonDelegated(t *testing.T) {

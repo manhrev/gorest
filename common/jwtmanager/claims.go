@@ -1,6 +1,7 @@
 package jwtmanager
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -40,6 +41,14 @@ type Claims struct {
 	Identity
 	TokenType TokenType `json:"typ"`
 	jwt.RegisteredClaims
+}
+
+// HasAudience reports whether id is in this token's aud claim — the check
+// a resource server makes before trusting a token addressed to someone
+// else. Bearer tokens can't authenticate the caller (that's TLS's job);
+// this only limits which resource server accepts the token at all.
+func (c *Claims) HasAudience(id string) bool {
+	return slices.Contains(c.Audience, id)
 }
 
 // IsDelegated reports whether this token was issued to an OAuth client

@@ -72,6 +72,10 @@ func Run(ctx context.Context) error {
 		AccessTokenDuration:  cfg.JWT.AccessTokenDuration,
 		RefreshTokenDuration: cfg.JWT.RefreshTokenDuration,
 		Issuer:               cfg.JWT.Issuer,
+		// Default aud for a direct (non-delegated) token = this service's
+		// own identity. Delegated tokens (WithDelegation) narrow this to
+		// the client instead — see jwtmanager.WithDelegation.
+		Audience: []string{cfg.JWT.Issuer},
 	})
 	if err != nil {
 		return fmt.Errorf("init jwtmanager: %w", err)
@@ -82,6 +86,7 @@ func Run(ctx context.Context) error {
 		authSvc,
 		oauthserver.New(authSvc, stub.NewClientStore(), stub.NewCodeStore(), stub.NewConsentStore()),
 		jwtSvc,
+		cfg.JWT.Issuer,
 	)
 	srv.registerAuthRoutes(api, "/auth")
 	srv.registerOAuthRoutes(api, "/oauth")

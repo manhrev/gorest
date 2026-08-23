@@ -16,6 +16,7 @@ type Service struct {
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 	issuer               string
+	audience             []string
 }
 
 func New(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKey, cfg Config) (*Service, error) {
@@ -33,6 +34,7 @@ func New(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKey, cfg Config)
 		accessTokenDuration:  cfg.AccessTokenDuration,
 		refreshTokenDuration: cfg.RefreshTokenDuration,
 		issuer:               cfg.Issuer,
+		audience:             cfg.Audience,
 	}, nil
 }
 
@@ -42,6 +44,13 @@ type ClaimOption func(*Claims)
 
 func WithRoles(roles []string) ClaimOption {
 	return func(c *Claims) { c.Roles = roles }
+}
+
+// WithAudience overrides a token's aud claim — see Service's default (cfg
+// Audience) and WithDelegation's narrower default for the common cases;
+// this is for anything else.
+func WithAudience(aud ...string) ClaimOption {
+	return func(c *Claims) { c.Audience = jwt.ClaimStrings(aud) }
 }
 
 func WithDomain(domain string) ClaimOption {
@@ -63,12 +72,16 @@ func WithMetadata(metadata map[string]string) ClaimOption {
 // WithDelegation marks the token as issued to an OAuth client acting on the
 // subject's behalf (RFC 9068 client_id + scope claims), replacing any roles
 // passed to GenerateAccessToken — a delegated token is authorized by Scope,
-// never by the user's own Roles. See Claims.Permissions.
+// never by the user's own Roles. See Claims.Permissions. Also narrows aud
+// to just clientID (overriding Service's default audience) — the token is
+// only valid at the resource server clientID itself is, not wherever a
+// direct user token would be accepted.
 func WithDelegation(clientID, scope string) ClaimOption {
 	return func(c *Claims) {
 		c.ClientID = clientID
 		c.Scope = scope
 		c.Roles = nil
+		c.Audience = jwt.ClaimStrings{clientID}
 	}
 }
 
@@ -91,6 +104,7 @@ func (s *Service) generate(subject string, tokenType TokenType, opts ...ClaimOpt
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   subject,
 			Issuer:    s.issuer,
+			Audience:  jwt.ClaimStrings(s.audience), // default; opts (e.g. WithDelegation) may narrow it
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.duration(tokenType))),
 			ID:        uuid.NewString(),
