@@ -1,6 +1,7 @@
 import { useState } from "react";
 import LoginPage from "./LoginPage.jsx";
 import OAuthPage from "./OAuthPage.jsx";
+import ClientCredentialsPage from "./ClientCredentialsPage.jsx";
 import JwksPage from "./JwksPage.jsx";
 import Callback from "./Callback.jsx";
 import "./style.css";
@@ -23,6 +24,9 @@ export default function App() {
         <button className={tab === "oauth" ? "active" : ""} onClick={() => setTab("oauth")}>
           OAuth
         </button>
+        <button className={tab === "client-credentials" ? "active" : ""} onClick={() => setTab("client-credentials")}>
+          Client Credentials
+        </button>
         <button className={tab === "jwks" ? "active" : ""} onClick={() => setTab("jwks")}>
           JWKS
         </button>
@@ -32,6 +36,7 @@ export default function App() {
       </nav>
       {tab === "login" && <LoginPage />}
       {tab === "oauth" && <OAuthPage />}
+      {tab === "client-credentials" && <ClientCredentialsPage />}
       {tab === "jwks" && <JwksPage />}
     </div>
   );

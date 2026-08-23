@@ -3,9 +3,9 @@
 // /api/exchange route ("server"). Exists so it's visually unambiguous
 // which hop could legitimately hold a client_secret (only "server" ever
 // can) and which can't (anything labeled "client").
-export default function ActorBadge({ actor }) {
+export default function ActorBadge({ actor, route = "/api/exchange" }) {
   return actor === "server" ? (
-    <span className="badge server">🔒 Server (vite.config.js — /api/exchange)</span>
+    <span className="badge server">🔒 Server (vite.config.js — {route})</span>
   ) : (
     <span className="badge client">🖥️ Client (browser)</span>
   );
