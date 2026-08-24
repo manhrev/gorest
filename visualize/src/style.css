@@ -1,0 +1,206 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1115;
+  --panel: #181b22;
+  --border: #2a2f3a;
+  --text: #e6e8eb;
+  --muted: #9aa3b2;
+  --accent: #5eb0ff;
+  --accent2: #7ee8a4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+#app {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+header { text-align: center; margin-bottom: 2rem; }
+header h1 { margin: 0 0 0.3rem; font-size: 1.5rem; }
+.subtitle { color: var(--muted); margin: 0; font-size: 0.9rem; }
+
+.stage {
+  position: relative;
+  height: 260px;
+  margin-bottom: 1.5rem;
+}
+
+.actor {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.8rem;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  z-index: 1;
+  min-width: 90px;
+  cursor: pointer;
+}
+
+.actor:hover,
+.actor:focus-visible {
+  border-color: var(--accent2);
+}
+
+/* client = apex, auth/resource = base corners */
+.actor[data-actor="client"] { top: 0; left: 50%; transform: translateX(-50%); }
+.actor[data-actor="auth"] { bottom: 0; left: 0; }
+.actor[data-actor="resource"] { bottom: 0; right: 0; }
+
+.actor.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(94, 176, 255, 0.35);
+}
+
+.actor-icon { font-size: 1.8rem; }
+.actor-label { font-size: 0.75rem; color: var(--muted); }
+.actor.active .actor-label { color: var(--text); }
+
+.arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.arrow-line {
+  stroke: var(--border);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.pulse {
+  fill: var(--accent2);
+}
+
+.info-panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.info-panel ul {
+  margin: 0 0 0.6rem;
+  padding-left: 1.2rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.info-section-label {
+  margin: 0.4rem 0 0.2rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.info-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.info-close:hover { color: var(--text); }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+.step-count {
+  font-size: 0.75rem;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  white-space: nowrap;
+}
+
+.panel-head h2 { margin: 0; font-size: 1.05rem; }
+
+#step-detail {
+  color: var(--muted);
+  font-family: system-ui, sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+  flex-shrink: 0;
+}
+
+#step-http {
+  background: #0b0d12;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  color: var(--accent2);
+  white-space: pre;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.controls button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.controls button:hover:not(:disabled) { border-color: var(--accent); }
+.controls button:disabled { opacity: 0.4; cursor: not-allowed; }
