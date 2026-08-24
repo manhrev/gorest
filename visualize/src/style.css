@@ -1,5 +1,6 @@
 :root {
   color-scheme: light dark;
+  font-size: 14px;
   --bg: #0f1115;
   --panel: #181b22;
   --border: #2a2f3a;
@@ -21,7 +22,7 @@ body {
 }
 
 #app {
-  max-width: 900px;
+  max-width: 640px;
   margin: 0 auto;
 }
 
@@ -31,51 +32,51 @@ header h1 { margin: 0 0 0.3rem; font-size: 1.5rem; }
 
 .stage {
   position: relative;
-  height: 260px;
+  height: 220px;
   margin-bottom: 1.5rem;
 }
 
-.actor {
-  position: absolute;
+/* React Flow's own canvas — positions the actor nodes we hand it, no pan/zoom UI */
+.stage .react-flow {
+  background: transparent;
+}
+
+.actor-node {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.8rem;
+  padding: 0.9rem 1.1rem;
   border-radius: 12px;
   border: 2px solid var(--border);
   background: var(--panel);
   transition: border-color 0.3s, box-shadow 0.3s;
-  z-index: 1;
-  min-width: 90px;
+  min-width: 105px;
   cursor: pointer;
 }
 
-.actor:hover,
-.actor:focus-visible {
+.actor-node:hover,
+.actor-node:focus-visible {
   border-color: var(--accent2);
 }
 
-/* client = apex, auth/resource = base corners */
-.actor[data-actor="client"] { top: 0; left: 50%; transform: translateX(-50%); }
-.actor[data-actor="auth"] { bottom: 0; left: 0; }
-.actor[data-actor="resource"] { bottom: 0; right: 0; }
-
-.actor.active {
+.actor-node.active {
   border-color: var(--accent);
   box-shadow: 0 0 16px rgba(94, 176, 255, 0.35);
 }
 
-.actor-icon { font-size: 1.8rem; }
-.actor-label { font-size: 0.75rem; color: var(--muted); }
-.actor.active .actor-label { color: var(--text); }
+.actor-icon { font-size: 3.2rem; }
+.actor-label { font-size: 1.3rem; color: var(--muted); }
+.actor-node.active .actor-label { color: var(--text); }
 
-.arrows {
+.arrows,
+.flow-overlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 1;
 }
 
 .arrow-line {
@@ -137,8 +138,8 @@ header h1 { margin: 0 0 0.3rem; font-size: 1.5rem; }
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1.2rem 1.5rem;
-  height: 340px;
+  padding: 1rem 1.2rem;
+  height: 240px;
   display: flex;
   flex-direction: column;
 }
@@ -183,6 +184,45 @@ header h1 { margin: 0 0 0.3rem; font-size: 1.5rem; }
   overflow: auto;
   color: var(--accent2);
   white-space: pre;
+}
+
+.outcome-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: calc(0.4rem * 2 + 0.82rem * 1.4 + 2px); /* matches .outcome-btn's own box height */
+  margin: -0.6rem 0 1.2rem;
+}
+
+.outcome-btn {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.outcome-btn:hover { border-color: var(--accent); }
+
+.outcome-btn.selected.outcome-happy {
+  border-color: var(--accent2);
+  color: var(--accent2);
+  box-shadow: 0 0 10px rgba(126, 232, 164, 0.3);
+}
+
+.outcome-btn.selected.outcome-error {
+  border-color: #ff8a65;
+  color: #ff8a65;
+  box-shadow: 0 0 10px rgba(255, 138, 101, 0.3);
+}
+
+.outcome-default {
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 .controls {
