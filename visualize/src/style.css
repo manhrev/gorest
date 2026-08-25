@@ -30,9 +30,47 @@ header { text-align: center; margin-bottom: 2rem; }
 header h1 { margin: 0 0 0.3rem; font-size: 1.5rem; }
 .subtitle { color: var(--muted); margin: 0; font-size: 0.9rem; }
 
+.page-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-nav-btn {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.page-nav-btn:hover { border-color: var(--accent); }
+
+.page-nav-btn.selected {
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(94, 176, 255, 0.25);
+}
+
+.pkce-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.6rem;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pkce-toggle input { cursor: pointer; }
+
 .stage {
   position: relative;
-  height: 220px;
+  height: 300px;
   margin-bottom: 1.5rem;
 }
 

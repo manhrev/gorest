@@ -1,4 +1,6 @@
-export type ActorId = 'client' | 'auth' | 'resource'
+// A flow's set of actor ids is page-specific (client-credentials has 3, authorization-code has 4),
+// so this is left as a plain string rather than a fixed union.
+export type ActorId = string
 
 export interface Outcome {
   id: string
