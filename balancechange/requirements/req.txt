@@ -1,0 +1,20 @@
+I want a golang backend service that follow huma bob structure that store transactions (balance change) from my bank account
+the changes is pushed through an api endpoint (raw text). I will connect to gemini to split that text into a model at db
+
+Model: transactions
+- Note
+- Amount
+- Type: Income, spent (you can suggest better enum)
+- CategoryId (enum: An uong, giai tri, mua sam (convert to english enum)
+- Owner of that transaction (enum: Van, Manh)
+- CreatedAt
+
+Api endpoint: POST /api/v1/transaction
+{
+    raw_text: "...",
+    created_at: "datetime"
+}
+Protected by an api key (hardcoded, pass from env)
+
+Tech:
+use postgresql, service is in golang, can be build to distroless image 

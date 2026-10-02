@@ -134,3 +134,16 @@ Applied in `serve.go` as `CORS(...)( Metadata(...)( Logger(logger)(router) ) )`:
 3. `huma-bob/internal/service/<resource>`: business rules; map repo errors to `serviceerr`.
 4. `huma-bob/internal/server/<resource>_controller.go`: `registerXRoutes` + handlers, each returning `response.NewOutput(ctx, ...)` / `response.NewError(ctx, err)`.
 5. Add the service to `Server` (`server.go`) and call `registerXRoutes` in `serve.go`.
+
+## balancechange
+
+Stores bank balance-change notifications: `POST /api/v1/transaction` (`X-API-Key` header) takes `{raw_text, created_at, owner?}`, Gemini parses the text into `transactions` (amount VND, `income|expense`, `food_drink|entertainment|shopping|other`, `van|manh`). Same layering as huma-bob.
+
+```sh
+docker compose up -d db
+docker compose exec db createdb -U postgres balancechange   # own DB: separate migration state from huma-bob
+cp balancechange/example.env balancechange/.env              # set API_KEY, GEMINI_API_KEY, POSTGRES_MIGRATE=true
+cd balancechange && go run ./cmd
+go run github.com/stephenafamo/bob/gen/bobgen-sql@v0.50.0 -c bobgen.yaml   # after changing migrations
+docker build -f balancechange/Dockerfile -t balancechange .                 # from repo root, distroless
+```
