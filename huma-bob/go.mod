@@ -2,8 +2,6 @@ module github.com/manhrev/gorest/huma-bob
 
 go 1.27.0
 
-replace github.com/manhrev/gorest/common => ../common
-
 require (
 	github.com/aarondl/opt v0.0.0-20250607033636-982744e1bd65
 	github.com/danielgtaylor/huma/v2 v2.39.1
@@ -11,7 +9,7 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
-	github.com/manhrev/gorest/common v0.0.0-00010101000000-000000000000
+	github.com/manhrev/mkit v0.1.0
 	github.com/stephenafamo/bob v0.50.0
 	github.com/stephenafamo/scan v0.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0

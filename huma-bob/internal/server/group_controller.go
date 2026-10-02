@@ -7,7 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/manhrev/gorest/huma-bob/internal/dto"
-	"github.com/manhrev/gorest/common/dto/response"
+	"github.com/manhrev/mkit/dto/response"
 )
 
 // registerGroupRoutes registers the group resource's operations relative to

@@ -15,11 +15,11 @@ import (
 	userrepo "github.com/manhrev/gorest/huma-bob/internal/repository/user"
 	groupservice "github.com/manhrev/gorest/huma-bob/internal/service/group"
 	userservice "github.com/manhrev/gorest/huma-bob/internal/service/user"
-	applog "github.com/manhrev/gorest/common/log"
-	"github.com/manhrev/gorest/common/middleware"
-	"github.com/manhrev/gorest/common/postgres"
-	"github.com/manhrev/gorest/common/tracing"
-	"github.com/manhrev/gorest/common/txrunner"
+	applog "github.com/manhrev/mkit/log"
+	"github.com/manhrev/mkit/middleware"
+	"github.com/manhrev/mkit/postgres"
+	"github.com/manhrev/mkit/tracing"
+	"github.com/manhrev/mkit/txrunner"
 )
 
 // Run sets up every dependency and serves until ctx is canceled (or

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/manhrev/gorest/balancechange/internal/enum"
-	"github.com/manhrev/gorest/common/httpclient"
+	"github.com/manhrev/mkit/httpclient"
 )
 
 const baseURL = "https://generativelanguage.googleapis.com/v1beta/models/"

@@ -7,7 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/manhrev/gorest/balancechange/internal/dto"
-	"github.com/manhrev/gorest/common/dto/response"
+	"github.com/manhrev/mkit/dto/response"
 )
 
 func (s *Server) registerTransactionRoutes(api huma.API, basePath string) {

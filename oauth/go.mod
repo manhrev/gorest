@@ -2,12 +2,10 @@ module github.com/manhrev/gorest/oauth
 
 go 1.27.0
 
-replace github.com/manhrev/gorest/common => ../common
-
 require (
 	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/joho/godotenv v1.5.1
-	github.com/manhrev/gorest/common v0.0.0-00010101000000-000000000000
+	github.com/manhrev/mkit v0.1.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0
 )
 

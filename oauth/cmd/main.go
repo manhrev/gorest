@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/manhrev/gorest/oauth/internal/server"
-	applog "github.com/manhrev/gorest/common/log"
+	applog "github.com/manhrev/mkit/log"
 )
 
 func main() {

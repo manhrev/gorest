@@ -9,8 +9,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/manhrev/gorest/oauth/internal/dto"
-	"github.com/manhrev/gorest/common/dto/response"
-	"github.com/manhrev/gorest/common/error/serviceerr"
+	"github.com/manhrev/mkit/dto/response"
+	"github.com/manhrev/mkit/error/serviceerr"
 )
 
 // registerAuthRoutes registers the auth resource's operations relative to

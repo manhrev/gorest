@@ -12,7 +12,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	pkgconfig "github.com/manhrev/gorest/common/config"
+	pkgconfig "github.com/manhrev/mkit/config"
 )
 
 // Config is pkgconfig.App plus fields specific to this server binary

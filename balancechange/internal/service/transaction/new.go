@@ -20,7 +20,7 @@ import (
 	"github.com/manhrev/gorest/balancechange/internal/enum"
 	"github.com/manhrev/gorest/balancechange/internal/gemini"
 	txrepo "github.com/manhrev/gorest/balancechange/internal/repository/transaction"
-	"github.com/manhrev/gorest/common/error/serviceerr"
+	"github.com/manhrev/mkit/error/serviceerr"
 )
 
 type Service struct {

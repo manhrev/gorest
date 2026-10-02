@@ -60,13 +60,12 @@ Every setting is an env var (or `.env` key — see `example.env` for the full li
 
 ## Development
 
-This repo is a `go.work` multi-module monorepo, no root module: `common/` (`github.com/manhrev/gorest/common`, shared libs) plus one module per server (e.g. `huma-bob/`, `github.com/manhrev/gorest/huma-bob` — also home to `dev/`, manual test harnesses for `common/*` packages).
+This repo is a `go.work` multi-module monorepo, no root module: shared libs live in the separate [`mkit`](https://github.com/manhrev/mkit) repo (`github.com/manhrev/mkit`, pulled as a normal dependency) plus one module per server (e.g. `huma-bob/`, `github.com/manhrev/gorest/huma-bob` — also home to `dev/`, manual test harnesses for `common/*` packages).
 
 ```bash
-go build ./common/... ./huma-bob/...   # compile everything
+go build ./huma-bob/... ./oauth/... ./balancechange/...   # compile everything
 go work sync                            # sync workspace after adding a module
 (cd huma-bob && go mod tidy)            # sync huma-bob's go.mod/go.sum after changing imports
-(cd common && go mod tidy)              # same, for common
 ```
 
 Db table bindings (`huma-bob/internal/db/model`) are generated via [bob](https://bobg.dev):

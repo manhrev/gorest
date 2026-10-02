@@ -11,12 +11,12 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/manhrev/gorest/oauth/config"
-	"github.com/manhrev/gorest/common/authservice"
-	"github.com/manhrev/gorest/common/jwtmanager"
-	applog "github.com/manhrev/gorest/common/log"
-	"github.com/manhrev/gorest/common/middleware"
-	"github.com/manhrev/gorest/common/oauthserver"
-	"github.com/manhrev/gorest/common/tracing"
+	"github.com/manhrev/mkit/authservice"
+	"github.com/manhrev/mkit/jwtmanager"
+	applog "github.com/manhrev/mkit/log"
+	"github.com/manhrev/mkit/middleware"
+	"github.com/manhrev/mkit/oauthserver"
+	"github.com/manhrev/mkit/tracing"
 	"github.com/manhrev/gorest/oauth/internal/service/stub"
 )
 

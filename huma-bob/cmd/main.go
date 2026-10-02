@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/manhrev/gorest/huma-bob/internal/server"
-	applog "github.com/manhrev/gorest/common/log"
+	applog "github.com/manhrev/mkit/log"
 )
 
 func main() {

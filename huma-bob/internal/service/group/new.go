@@ -19,9 +19,9 @@ import (
 	"github.com/manhrev/gorest/huma-bob/internal/dto"
 	grouprepo "github.com/manhrev/gorest/huma-bob/internal/repository/group"
 	"github.com/manhrev/gorest/huma-bob/internal/db/model"
-	"github.com/manhrev/gorest/common/dto/request"
-	"github.com/manhrev/gorest/common/error/repoerr"
-	"github.com/manhrev/gorest/common/error/serviceerr"
+	"github.com/manhrev/mkit/dto/request"
+	"github.com/manhrev/mkit/error/repoerr"
+	"github.com/manhrev/mkit/error/serviceerr"
 )
 
 type Service struct {

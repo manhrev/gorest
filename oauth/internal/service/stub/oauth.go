@@ -12,7 +12,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/manhrev/gorest/common/oauthserver"
+	"github.com/manhrev/mkit/oauthserver"
 )
 
 type ClientStore struct {

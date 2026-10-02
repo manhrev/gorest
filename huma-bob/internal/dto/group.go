@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/manhrev/gorest/common/dto/request"
+	"github.com/manhrev/mkit/dto/request"
 )
 
 // Group is the canonical group representation returned by the API.

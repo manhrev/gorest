@@ -8,7 +8,7 @@ import (
 
 	"github.com/manhrev/gorest/huma-bob/internal/code"
 	"github.com/manhrev/gorest/huma-bob/internal/dto"
-	"github.com/manhrev/gorest/common/dto/response"
+	"github.com/manhrev/mkit/dto/response"
 )
 
 // registerUserRoutes registers the user resource's operations relative to

@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/manhrev/gorest/common/dto/wrapper"
+import "github.com/manhrev/mkit/dto/wrapper"
 
 // GroupInfo is implemented by every concrete group-info variant. Same
 // pattern as UserMeta (see user_meta.go) — Box[T] discriminated union via

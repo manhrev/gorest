@@ -3,9 +3,9 @@
 package server
 
 import (
-	"github.com/manhrev/gorest/common/authservice"
-	"github.com/manhrev/gorest/common/jwtmanager"
-	"github.com/manhrev/gorest/common/oauthserver"
+	"github.com/manhrev/mkit/authservice"
+	"github.com/manhrev/mkit/jwtmanager"
+	"github.com/manhrev/mkit/oauthserver"
 )
 
 // Server holds the app's dependencies and exposes them as huma operation
