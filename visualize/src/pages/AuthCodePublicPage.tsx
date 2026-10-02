@@ -1,41 +1,29 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer } from 'react'
 import FlowCanvas, { type ActorMeta } from '../components/FlowCanvas'
 import StepPanel from '../components/StepPanel'
 import OutcomePicker from '../components/OutcomePicker'
 import ActorInfoPanel, { type ActorInfoContent } from '../components/ActorInfoPanel'
 import PlaybackControls from '../components/PlaybackControls'
-import { buildGraph, actorInfo, clientHolding, userHolding } from './authCodeGraph'
+import { graph, actorInfo, clientHolding } from './authCodePublicGraph'
 import { makeReducer, initState, totalSteps } from '../reducer'
 import type { ActorId } from '../types'
 
+const reducer = makeReducer(graph)
 const PLAY_INTERVAL_MS = 1800
 
 const ACTOR_META: Record<string, ActorMeta> = {
-  user: { icon: '🌐', label: 'User (Browser)', position: { x: 230, y: 0 } },
-  auth: { icon: '🔐', label: 'Auth Server', position: { x: 0, y: 150 } },
-  resource: { icon: '📦', label: 'Resource Server', position: { x: 460, y: 150 } },
-  client: { icon: '🖧', label: 'OAuth Client', position: { x: 230, y: 300 } },
+  client: { icon: '🌐', label: 'SPA (Public Client)', position: { x: 260, y: 0 } },
+  auth: { icon: '🔐', label: 'Auth Server', position: { x: 0, y: 220 } },
+  resource: { icon: '📦', label: 'Resource Server', position: { x: 520, y: 220 } },
 }
 
 const EDGE_PAIRS: [ActorId, ActorId][] = [
-  ['user', 'auth'],
-  ['user', 'client'],
   ['client', 'auth'],
   ['client', 'resource'],
 ]
 
-export default function AuthCodePage() {
-  const [usePkce, setUsePkce] = useState(true)
-  const graph = useMemo(() => buildGraph(usePkce), [usePkce])
-  const reducer = useMemo(() => makeReducer(graph), [graph])
+export default function AuthCodePublicPage() {
   const [state, dispatch] = useReducer(reducer, undefined, initState)
-
-  // outcomes differ per PKCE setting (an extra error branch) — start over on toggle
-  // rather than risk pointing at an outcome that no longer exists in the new graph
-  useEffect(() => {
-    dispatch({ type: 'RESET' })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usePkce])
 
   const entry = state.path[state.cursor]
   const step = graph[entry.stepId]
@@ -45,8 +33,7 @@ export default function AuthCodePage() {
 
   const visited = state.path.slice(0, state.cursor + 1)
   const pkceGenerated = visited.some((p) => p.stepId === 'redirect-to-auth')
-  const stateIssued = pkceGenerated
-  const codeReceived = visited.some((p) => p.stepId === 'follow-redirect-client')
+  const codeReceived = visited.some((p) => p.stepId === 'issue-code')
   const tokenIssued = visited.some((p) => p.stepId === 'issue-tokens')
   const resourceFetched = visited.some((p) => p.stepId === 'resource-returned')
 
@@ -65,12 +52,9 @@ export default function AuthCodePage() {
     (actor: ActorId): ActorInfoContent => {
       if (actor === 'client') {
         return {
-          title: 'Client — holding',
-          sections: [{ items: clientHolding({ pkceGenerated, codeReceived, tokenIssued, resourceFetched }, usePkce) }],
+          title: 'Client (SPA) — holding',
+          sections: [{ items: clientHolding({ pkceGenerated, codeReceived, tokenIssued, resourceFetched }) }],
         }
-      }
-      if (actor === 'user') {
-        return { title: 'User (Browser) — holding', sections: [{ items: userHolding({ stateIssued }) }] }
       }
       const info = actorInfo[actor as 'auth' | 'resource']
       return {
@@ -81,19 +65,15 @@ export default function AuthCodePage() {
         ],
       }
     },
-    [pkceGenerated, codeReceived, tokenIssued, resourceFetched, stateIssued, usePkce],
+    [pkceGenerated, codeReceived, tokenIssued, resourceFetched],
   )
 
   return (
     <>
       <header>
-        <h1>OAuth 2.0 — Authorization Code Grant</h1>
+        <h1>OAuth 2.0 — Authorization Code Grant (Public Client)</h1>
         <p className="subtitle">
-          RFC 6749 §4.1 — confidential client (backend), user goes through login + consent.{' '}
-          <label className="pkce-toggle">
-            <input type="checkbox" checked={usePkce} onChange={(e) => setUsePkce(e.target.checked)} />
-            Use PKCE (RFC 7636)
-          </label>
+          RFC 6749 §4.1 + RFC 7636 — the browser app itself is the client, no backend, PKCE mandatory (no secret to fall back on).
         </p>
       </header>
 

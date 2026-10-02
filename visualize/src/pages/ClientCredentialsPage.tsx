@@ -5,7 +5,7 @@ import OutcomePicker from '../components/OutcomePicker'
 import ActorInfoPanel, { type ActorInfoContent } from '../components/ActorInfoPanel'
 import PlaybackControls from '../components/PlaybackControls'
 import { graph, actorInfo, clientHolding } from '../flowGraph'
-import { makeReducer, initState } from '../reducer'
+import { makeReducer, initState, totalSteps } from '../reducer'
 import type { ActorId } from '../types'
 
 const reducer = makeReducer(graph)
@@ -82,7 +82,7 @@ export default function ClientCredentialsPage() {
 
       <ActorInfoPanel openActor={state.openActor} getInfo={getInfo} onClose={() => dispatch({ type: 'CLOSE_ACTOR' })} />
 
-      <StepPanel index={state.cursor} total={state.path.length} outcome={outcome} />
+      <StepPanel index={state.cursor} total={totalSteps(graph, state.path)} outcome={outcome} />
 
       <OutcomePicker
         outcomes={step.outcomes}

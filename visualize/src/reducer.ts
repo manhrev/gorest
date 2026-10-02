@@ -22,6 +22,25 @@ export type Action =
 const defaultOutcomeId = (graph: FlowGraph, stepId: string) =>
   graph[stepId].outcomes.find((o) => o.kind === 'happy')?.id ?? graph[stepId].outcomes[0].id
 
+/**
+ * Total step count for the "Step X / N" display. `path.length` alone is wrong here —
+ * path only grows as the user clicks Next, so cursor is always its last index while
+ * moving forward and it reads as "N/N" no matter where you are. Instead, project the
+ * path forward from wherever it currently ends, using the default outcome at each
+ * not-yet-visited step, until a terminal step is hit.
+ */
+export function totalSteps(graph: FlowGraph, path: PathEntry[]): number {
+  let count = path.length
+  let last = path[path.length - 1]
+  let outcome = graph[last.stepId].outcomes.find((o) => o.id === last.outcomeId)!
+  while (outcome.next) {
+    count++
+    const nextStep = graph[outcome.next]
+    outcome = nextStep.outcomes.find((o) => o.kind === 'happy') ?? nextStep.outcomes[0]
+  }
+  return count
+}
+
 export function initState(): FlowState {
   return { path: [{ stepId: START_STEP, outcomeId: 'happy' }], cursor: 0, openActor: null, playing: false }
 }

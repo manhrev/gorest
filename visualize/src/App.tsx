@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import ClientCredentialsPage from './pages/ClientCredentialsPage'
 import AuthCodePage from './pages/AuthCodePage'
+import AuthCodePublicPage from './pages/AuthCodePublicPage'
 
 const PAGES = {
   'client-credentials': { label: 'Client Credentials', Component: ClientCredentialsPage },
-  'auth-code': { label: 'Authorization Code', Component: AuthCodePage },
+  'auth-code': { label: 'Authorization Code (Confidential)', Component: AuthCodePage },
+  'auth-code-public': { label: 'Authorization Code (Public)', Component: AuthCodePublicPage },
 } as const
 
 type PageId = keyof typeof PAGES
