@@ -63,7 +63,7 @@ Every setting is an env var (or `.env` key — see `example.env` for the full li
 This repo is a `go.work` multi-module monorepo, no root module: shared libs live in the separate [`mkit`](https://github.com/manhrev/mkit) repo (`github.com/manhrev/mkit`, pulled as a normal dependency) plus one module per server (e.g. `huma-bob/`, `github.com/manhrev/gorest/huma-bob` — also home to `dev/`, manual test harnesses for `common/*` packages).
 
 ```bash
-go build ./huma-bob/... ./oauth/... ./balancechange/...   # compile everything
+go build ./huma-bob/... ./oauth/...   # compile everything
 go work sync                            # sync workspace after adding a module
 (cd huma-bob && go mod tidy)            # sync huma-bob's go.mod/go.sum after changing imports
 ```
@@ -134,15 +134,6 @@ Applied in `serve.go` as `CORS(...)( Metadata(...)( Logger(logger)(router) ) )`:
 4. `huma-bob/internal/server/<resource>_controller.go`: `registerXRoutes` + handlers, each returning `response.NewOutput(ctx, ...)` / `response.NewError(ctx, err)`.
 5. Add the service to `Server` (`server.go`) and call `registerXRoutes` in `serve.go`.
 
-## balancechange
+## spendlog
 
-Stores bank balance-change notifications: `POST /api/v1/transaction` (`X-API-Key` header) takes `{raw_text, created_at, owner?}`, Gemini parses the text into `transactions` (amount VND, `income|expense`, `food_drink|entertainment|shopping|other`, `van|manh`). Same layering as huma-bob.
-
-```sh
-docker compose up -d db
-docker compose exec db createdb -U postgres balancechange   # own DB: separate migration state from huma-bob
-cp balancechange/example.env balancechange/.env              # set API_KEY, GEMINI_API_KEY, POSTGRES_MIGRATE=true
-cd balancechange && go run ./cmd
-go run github.com/stephenafamo/bob/gen/bobgen-sql@v0.50.0 -c bobgen.yaml   # after changing migrations
-docker build -f balancechange/Dockerfile -t balancechange .                 # from repo root, distroless
-```
+Moved to its own repo: [manhrev/spendlog](https://github.com/manhrev/spendlog).
